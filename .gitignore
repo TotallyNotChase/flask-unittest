@@ -1,6 +1,5 @@
+.vscode
+*.egg-info/
+*.pyc
 # Ignore virtual env directory
 *env/
-# Ignore .egg-info directory
-*.egg-info/
-# Ignore .vscode
-.vscode
