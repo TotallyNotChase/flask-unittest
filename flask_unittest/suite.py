@@ -7,7 +7,7 @@ from flask import Flask
 
 from .case import TestCase
 
-_TestType = TestCase
+_TestType = Union[TestCase, unittest.TestSuite]
 
 # Imitate socket.create_connection's placeholder default timeout
 _GLOBAL_DEFAULT_TIMEOUT = object()
@@ -38,7 +38,12 @@ class TestSuite(unittest.TestSuite):
     def _setup_testcases(self):
         # Set up required properties in all testcases in current testsuite
         for test in self:
-            test.server_url = f'http://127.0.0.1:{self._port}'
+            if self._isnotsuite(test):
+                test.server_url = f'http://127.0.0.1:{self._port}'
+            else:
+                # Current element is an entire suite - iterate through it and add properties to each test
+                for inner_test in test:
+                    inner_test.server_url = f'http://127.0.0.1:{self._port}'
 
     def _setup_server(self):
         # Spawn the flask server as a separate process
@@ -46,7 +51,19 @@ class TestSuite(unittest.TestSuite):
         self._thread.setDaemon(True)
         self._thread.start()
         # Wait for the server to start responding, until a specific timeout
-        socket.create_connection((_LOCALHOST, self._port), timeout=self.timeout or None)
+        sckt = socket.create_connection((_LOCALHOST, self._port), timeout=self.timeout or None)
+
+    def _isnotsuite(self, test):
+        '''
+        A crude way to tell apart testcases and suites with duck-typing
+
+        Taken from unittest.TestSuite internals
+        '''
+        try:
+            iter(test)
+        except TypeError:
+            return True
+        return False
     
     ### Override the type hints of some derived functions
 
