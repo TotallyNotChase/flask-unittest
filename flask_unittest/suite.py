@@ -52,6 +52,7 @@ class TestSuite(unittest.TestSuite):
         self._thread.start()
         # Wait for the server to start responding, until a specific timeout
         sckt = socket.create_connection((_LOCALHOST, self._port), timeout=self.timeout or None)
+        sckt.close()
 
     def _isnotsuite(self, test):
         '''
