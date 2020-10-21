@@ -32,7 +32,7 @@ class TestSuite(unittest.TestSuite):
         self._setup_server()
         self._setup_testcases()
         return super().run(result, debug)
-    
+
     ### Private functions specific to flask-unittest testcases
 
     def _setup_testcases(self):
@@ -41,10 +41,8 @@ class TestSuite(unittest.TestSuite):
             test.server_url = f'http://127.0.0.1:{self._port}'
 
     def _setup_server(self):
-        def start_server():
-            self.app.run(port=self._port, use_reloader=False)
         # Spawn the flask server as a separate process
-        self._thread = threading.Thread(target=start_server)
+        self._thread = threading.Thread(target=self.app.run, kwargs={ 'port': self._port, 'use_reloader': False })
         self._thread.setDaemon(True)
         self._thread.start()
         # Wait for the server to start responding, until a specific timeout
