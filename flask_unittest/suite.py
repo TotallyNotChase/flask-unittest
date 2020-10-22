@@ -5,9 +5,9 @@ from typing import Union, Iterator, Iterable
 
 from flask import Flask
 
-from .case import TestCase
+from .case import LiveTestCase
 
-_TestType = Union[TestCase, unittest.TestSuite]
+_TestType = Union[LiveTestCase, unittest.TestSuite]
 
 # Imitate socket.create_connection's placeholder default timeout
 _GLOBAL_DEFAULT_TIMEOUT = object()
@@ -15,7 +15,7 @@ _GLOBAL_DEFAULT_TIMEOUT = object()
 # Store localhost as constant
 _LOCALHOST = '127.0.0.1'
 
-class TestSuite(unittest.TestSuite):
+class LiveTestSuite(unittest.TestSuite):
     # Handle for the flask server
     _thread: Union[threading.Thread, None] = None
 
@@ -23,8 +23,8 @@ class TestSuite(unittest.TestSuite):
         if flask_app.testing != True:
             # Passed app must be set to testing
             raise AttributeError(f'Expected flask_app.testing to have a value of True, got {flask_app.testing} instead')
-        self.app = flask_app
-        self.timeout = timeout if timeout is not _GLOBAL_DEFAULT_TIMEOUT else None
+        self._app = flask_app
+        self._timeout = timeout if timeout is not _GLOBAL_DEFAULT_TIMEOUT else None
         self._port: int = flask_app.config.get('PORT', 5000)
         super().__init__(tests)
 
@@ -37,21 +37,25 @@ class TestSuite(unittest.TestSuite):
 
     def _setup_testcases(self):
         # Set up required properties in all testcases in current testsuite
+        def _inject_properties(testcase: LiveTestCase):
+            # Inject the required properties into the given test case
+            testcase.server_url = f'http://127.0.0.1:{self._port}'
+            testcase.app = self._app
         for test in self:
             if self._isnotsuite(test):
-                test.server_url = f'http://127.0.0.1:{self._port}'
+                _inject_properties(test)
             else:
                 # Current element is an entire suite - iterate through it and add properties to each test
                 for inner_test in test:
-                    inner_test.server_url = f'http://127.0.0.1:{self._port}'
+                    _inject_properties(inner_test)
 
     def _setup_server(self):
         # Spawn the flask server as a separate process
-        self._thread = threading.Thread(target=self.app.run, kwargs={ 'port': self._port, 'use_reloader': False })
+        self._thread = threading.Thread(target=self._app.run, kwargs={ 'port': self._port, 'use_reloader': False })
         self._thread.setDaemon(True)
         self._thread.start()
         # Wait for the server to start responding, until a specific timeout
-        sckt = socket.create_connection((_LOCALHOST, self._port), timeout=self.timeout or None)
+        sckt = socket.create_connection((_LOCALHOST, self._port), timeout=self._timeout or None)
         sckt.close()
 
     def _isnotsuite(self, test):

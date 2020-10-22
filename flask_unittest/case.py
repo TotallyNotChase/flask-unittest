@@ -1,16 +1,14 @@
 import unittest
-from typing import Union
+from typing import Union, ContextManager
 
-class TestCase(unittest.TestCase):
-    _server_url: Union[str, None] = None
+from flask import Flask
+from flask.ctx import RequestContext
 
-    @property
-    def server_url(self):
-        if self._server_url:
-            return self._server_url
-        # Property has not been set yet
-        raise AttributeError
-        
-    @server_url.setter
-    def server_url(self, url: str):
-        self._server_url = url
+class LiveTestCase(unittest.TestCase):
+    app: Union[Flask, None] = None
+    server_url: Union[str, None] = None
+
+class ClientTestCase(unittest.TestCase):
+    app: Union[Flask, None] = None
+    req_ctx: Union[ContextManager[RequestContext], None] = None
+    server_url: Union[str, None] = None
