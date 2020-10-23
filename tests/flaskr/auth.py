@@ -114,3 +114,18 @@ def logout():
     """Clear the current session, including the stored user id."""
     session.clear()
     return redirect(url_for("index"))
+
+@bp.route("/delete", methods=("GET", "POST"))
+@login_required
+def delete():
+    """Delete the current user account"""
+    if request.method == "POST":
+        db = get_db()
+        db.execute(
+            "DELETE FROM user WHERE id = ?", (g.user["id"],)
+        )
+        db.commit()
+        session.clear()
+        return redirect(url_for("index"))
+
+    return render_template("auth/delete.html")

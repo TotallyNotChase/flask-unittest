@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Log In{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post">
+    <label for="confirmation">Are you sure you want to delete your account?</label>
+    <input type="submit" value="Yes!">
+  </form>
+{% endblock %}
