@@ -17,6 +17,7 @@ setup(
     test_suite="tests.suite",
     platforms='any',
     install_requires=['Flask'],
+    tests_require=['selenium'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
