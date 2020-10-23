@@ -3,3 +3,5 @@
 *.pyc
 # Ignore virtual env directory
 *env/
+# Ignore flaskr created db directory
+instance/
