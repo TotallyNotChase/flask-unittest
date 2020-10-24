@@ -298,3 +298,6 @@ class TestBlog(TestBase):
             pass
         # Log back in as to not screw up the tearDown
         self.login(self.userdata.username, self.userdata.password)
+
+if __name__ == '__main__':
+    flask_unittest.main_live(app)

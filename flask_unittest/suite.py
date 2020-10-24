@@ -9,7 +9,7 @@ from .case import LiveTestCase
 
 _TestType = Union[LiveTestCase, unittest.TestSuite]
 
-# Imitate socket.create_connection's placeholder default timeout
+# A constant placeholder to signify default timeout parameter
 _GLOBAL_DEFAULT_TIMEOUT = object()
 
 # Store localhost as constant
