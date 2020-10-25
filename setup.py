@@ -16,7 +16,7 @@ setup(
     packages=find_packages(),
     test_suite="tests.suite",
     platforms='any',
-    install_requires=['Flask'],
+    install_requires=['Flask>=1.1.0'],
     tests_require=['selenium'],
     classifiers=[
         "Programming Language :: Python :: 3",
