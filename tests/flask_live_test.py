@@ -33,7 +33,10 @@ class Posts:
 
 
 class TestSetup(flask_unittest.LiveTestCase):
-
+    '''
+    Make sure the testcase has been properly set up
+    and all expected properties exist and are correct
+    '''
     def test_setup(self):
         # Make sure the testcase is set up all correctly
         # i.e make sure the properties were injected
@@ -132,7 +135,9 @@ class TestBase(flask_unittest.LiveTestCase):
 
 
 class TestAuth(TestBase):
-
+    '''
+    Test the signup/login part of the app
+    '''
     def test_register(self):
         self.signup(self.userdata.username, self.userdata.password)
         # Log in and delete the account
@@ -175,6 +180,9 @@ class TestAuth(TestBase):
 
 
 class TestBlog(TestBase):
+    '''
+    Test the blog posts functionality of the app
+    '''
     posts = Posts().posts
 
     def setUp(self):
