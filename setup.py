@@ -17,7 +17,7 @@ setup(
     test_suite="tests.suite",
     platforms='any',
     install_requires=['Flask>=1.1.0'],
-    tests_require=['selenium'],
+    tests_require=['selenium', 'beautifulsoup4'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
