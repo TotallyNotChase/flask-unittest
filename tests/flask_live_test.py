@@ -1,13 +1,14 @@
 from typing import Union
 
 import flask_unittest
+from flask.app import Flask
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
-from tests.app_factory import app
+from tests.app_factory import build_app
 
 
 class MockUser:
@@ -44,12 +45,15 @@ class TestSetup(flask_unittest.LiveTestCase):
         self.assertTrue(self.app is not None)
 
     def test_values(self):
-        # Make sure the injected values are correct
-        self.assertEqual(self.app, app)
-        self.assertEqual(self.server_url, f'http://127.0.0.1:{app.config.get("PORT", 5000)}')
+        # Make sure the injected types/values are correct
+        self.assertTrue(isinstance(self.app, Flask))
+        self.assertEqual(self.server_url, f'http://127.0.0.1:{self.app.config.get("PORT", 5000)}')
 
 
 class TestIndex(flask_unittest.LiveTestCase):
+    '''
+    Test the index page
+    '''
     driver: Union[Chrome, None] = None
     std_wait: Union[WebDriverWait, None] = None
 
@@ -96,7 +100,8 @@ class TestBase(flask_unittest.LiveTestCase):
         # Quit the webdriver
         cls.driver.quit()
 
-    def signup(self, username, password):
+    def signup(self, username: str, password: str):
+        # Sign up with given credentials
         self.driver.get(f'{self.server_url}/auth/register')
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'username'))).send_keys(username)
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'password'))).send_keys(password)
@@ -106,7 +111,8 @@ class TestBase(flask_unittest.LiveTestCase):
             (By.XPATH, '/html/body/section/header/h1[contains(text(), "Log In")]'))
         )
 
-    def login(self, username, password):
+    def login(self, username: str, password: str):
+        # Log in with given credentials
         self.driver.get(f'{self.server_url}/auth/login')
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'username'))).send_keys(username)
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'password'))).send_keys(password)
@@ -145,9 +151,9 @@ class TestAuth(TestBase):
         self.delete()
 
     def test_login(self):
+        # Register an account first
         self.signup(self.userdata.username, self.userdata.password)
-        # logout and log back in
-        self.logout()
+        # Log in
         self.login(self.userdata.username, self.userdata.password)
         # Go to index page and make sure username shown is correct
         self.driver.get(self.server_url)
@@ -160,12 +166,10 @@ class TestAuth(TestBase):
 
     def test_duplicate_register(self):
         self.signup(self.userdata.username, self.userdata.password)
-        # logout and sign up with the same credentials
-        self.logout()
         try:
             self.signup(self.userdata.username, self.userdata.password)
             raise AssertionError('Signup should have failed')
-        except Exception as e:
+        except TimeoutException:
             pass
         # Log back in and delete the account
         self.login(self.userdata.username, self.userdata.password)
@@ -175,7 +179,7 @@ class TestAuth(TestBase):
         try:
             self.login('definitely not real', 'supah secret')
             raise AssertionError('Login should have failed')
-        except:
+        except TimeoutException:
             pass
 
 
@@ -192,7 +196,7 @@ class TestBlog(TestBase):
     def tearDown(self):
         self.delete()
 
-    def create_post(self, title, body):
+    def create_post(self, title: str, body: str):
         # Creates a post and verifies its presence on the index page
         self.driver.get(f'{self.server_url}/create')
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'title'))).send_keys(title)
@@ -206,7 +210,7 @@ class TestBlog(TestBase):
             (By.XPATH, f'/html/body/section/article[@class="post"]/p[contains(text(), "{body}")]'))
         )
 
-    def edit_post(self, old_title, old_body, new_title, new_body):
+    def edit_post(self, old_title: str, old_body: str, new_title: str, new_body: str):
         self.driver.get(self.server_url)
         # Go to the edit page of the given post
         self.std_wait.until(EC.element_to_be_clickable(
@@ -234,7 +238,7 @@ class TestBlog(TestBase):
             (By.XPATH, f'/html/body/section/article[@class="post"]/p[contains(text(), "{new_body}")]'))
         )
 
-    def delete_post(self, title, body):
+    def delete_post(self, title: str, body: str):
         self.driver.get(self.server_url)
         # Go to the edit page of the given post
         self.std_wait.until(EC.element_to_be_clickable(
@@ -307,5 +311,6 @@ class TestBlog(TestBase):
         # Log back in as to not screw up the tearDown
         self.login(self.userdata.username, self.userdata.password)
 
+
 if __name__ == '__main__':
-    flask_unittest.main_live(app)
+    flask_unittest.main_live(build_app())
