@@ -19,6 +19,9 @@ class TestBase(flask_unittest.AppTestCase):
     As long as your testcase class extends flask_unittest.AppTestCase - it's fine
     '''
 
+    def create_app(self) -> Flask:
+        return build_app()
+
     ### Helper functions (not mandatory)
 
     def signup(self, client: FlaskClient, username: str, password: str):
@@ -65,9 +68,6 @@ class TestSetup(TestBase):
     and all expected properties exist and are correct
     '''
 
-    def create_app(self) -> Flask:
-        return build_app()
-
     ### setUp and tearDown methods per testcase (not mandatory) - should have app as a parameter
 
     def setUp(self, app: Flask):
@@ -96,9 +96,6 @@ class TestGlobals(TestBase):
     Also use the test_request_context as an example of practical use
     of the app object
     '''
-
-    def create_app(self) -> Flask:
-        return build_app()
 
     ### Test methods (mandatory, obviously) - should have app as a parameter
 

@@ -99,17 +99,6 @@ class TestSetup(TestBase):
     ### Test methods (mandatory, obviously) - should have client as a parameter
 
     def test_setup(self, client: FlaskClient):
-        # Make sure the testcase is set up all correctly
-        # i.e make sure the properties were injected
-        self.assertTrue(client is not None)
-        self.assertTrue(self.app is not None)
-
-    def test_values(self, client: FlaskClient):
-        # Make sure the properties are of correct type/value
-        self.assertTrue(isinstance(self.app, Flask))
-        self.assertTrue(isinstance(client, FlaskClient))
-    
-    def tearDown(self, client: FlaskClient):
         # Make sure client is passed in correctly and has correct type
         self.assertTrue(client is not None)
         self.assertTrue(isinstance(client, FlaskClient))
