@@ -29,50 +29,6 @@ class Posts:
     )
 
 
-class TestSetup(flask_unittest.ClientTestCase):
-    '''
-    Make sure the testcases are set up correctly
-    '''
-    # Assign the flask app
-    app = build_app()
-
-    def setUp(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def test_setup(self, client: FlaskClient):
-        # Make sure the testcase is set up all correctly
-        # i.e make sure the properties were injected
-        self.assertTrue(client is not None)
-        self.assertTrue(self.app is not None)
-
-    def test_values(self, client: FlaskClient):
-        # Make sure the properties are of correct type/value
-        self.assertTrue(isinstance(self.app, Flask))
-        self.assertTrue(isinstance(client, FlaskClient))
-    
-    def tearDown(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-
-class TestIndex(flask_unittest.ClientTestCase):
-    '''
-    Test the index page of the app
-    '''
-    # Assign the flask app
-    app = build_app()
-
-    def test_presence_of_links(self, client: FlaskClient):
-        # Make sure the register and login links are present in index page
-        rv: Response = client.get('/')
-        soup = BeautifulSoup(rv.data, 'html.parser')
-        self.assertTrue(soup.select('a[href="/auth/register"]'))
-        self.assertTrue(soup.select('a[href="/auth/login"]'))
-
-
 class TestBase(flask_unittest.ClientTestCase):
     '''
     Base ClientTestCase with helper functions used across other testcases
@@ -89,6 +45,10 @@ class TestBase(flask_unittest.ClientTestCase):
     Alternately, you can use a global variable that stores the result of `build_app()`
     and just assign that to each testcase, essentially using the same app instance
     for all of them
+
+    NOTE: You absolutely don't need to have a TestBase class to write tests. It's just
+    convenient in this case since the other testcases share the same methods/properties.
+    As long as your testcase class extends flask_unittest.ClientTestCase - it's fine
     '''
     # Make the test client use cookies - required for auth
     test_client_use_cookies = True
@@ -131,6 +91,58 @@ class TestBase(flask_unittest.ClientTestCase):
         # Make sure delete suceeded and the non-authorized links are showing
         self.assertTrue(soup.select('a[href="/auth/register"]'))
         self.assertTrue(soup.select('a[href="/auth/login"]'))
+
+
+class TestSetup(TestBase):
+    '''
+    Make sure the testcases are set up correctly
+    and all expected properties exist and are correct
+    '''
+    # Assign the flask app
+    app = build_app()
+
+    ### setUp method per testcase (mandatory, obviously) - should have client as a parameter
+
+    def setUp(self, client: FlaskClient):
+        # Make sure client is passed in correctly and has correct type
+        self.assertTrue(client is not None)
+        self.assertTrue(isinstance(client, FlaskClient))
+
+    ### Test methods (mandatory, obviously) - should have client as a parameter
+
+    def test_setup(self, client: FlaskClient):
+        # Make sure the testcase is set up all correctly
+        # i.e make sure the properties were injected
+        self.assertTrue(client is not None)
+        self.assertTrue(self.app is not None)
+
+    def test_values(self, client: FlaskClient):
+        # Make sure the properties are of correct type/value
+        self.assertTrue(isinstance(self.app, Flask))
+        self.assertTrue(isinstance(client, FlaskClient))
+    
+    def tearDown(self, client: FlaskClient):
+        # Make sure client is passed in correctly and has correct type
+        self.assertTrue(client is not None)
+        self.assertTrue(isinstance(client, FlaskClient))
+
+
+class TestIndex(TestBase):
+    '''
+    Test the index page of the app
+    '''
+    # Assign the flask app
+    app = build_app()
+
+    ### Test methods (mandatory, obviously) - should have client as a parameter
+
+    def test_presence_of_links(self, client: FlaskClient):
+        # Make sure the register and login links are present in index page
+        rv: Response = client.get('/')
+        soup = BeautifulSoup(rv.data, 'html.parser')
+        self.assertTrue(soup.select('a[href="/auth/register"]'))
+        self.assertTrue(soup.select('a[href="/auth/login"]'))
+
 
 class TestAuth(TestBase):
     '''
@@ -185,6 +197,7 @@ class TestAuth(TestBase):
                 raise e
             # Ignore the assertion error from login method
 
+
 class TestBlog(TestBase):
     '''
     Test the blog posts functionality of the app
@@ -193,7 +206,7 @@ class TestBlog(TestBase):
     # Assign the flask app
     app = build_app()
 
-    ### setUp and tearDown functions per testcase (not mandatory) - should have client as a param
+    ### setUp and tearDown methods per testcase (not mandatory) - should have client as a param
 
     def setUp(self, client: FlaskClient):
         # Create an account and log in with it
