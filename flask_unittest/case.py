@@ -4,6 +4,7 @@ from typing import Dict, Union, Optional
 
 from flask import Flask
 from flask.testing import FlaskClient
+from flask.wrappers import Response
 
 
 class LiveTestCase(unittest.TestCase):
@@ -22,15 +23,25 @@ class LiveTestCase(unittest.TestCase):
     server_url: Union[str, None] = None
 
 
-class ClientTestCase(unittest.TestCase):
+class UtilityTestCase(unittest.TestCase):
+    '''
+    Utility methods used by actual TestCases
+    '''
+    def assertStatus(self, rv: Response, expected_status: int):
+        self.assertEqual(rv.status_code, expected_status)
+
+
+class ClientTestCase(UtilityTestCase):
     '''
     Test your flask web app using a FlaskClient object
 
+    A FlaskClient object is created using the given app object for **each**
+    test set (i.e setUp, test method, tearDown) - this same object is then passed
+    to the setUp, test method and tearDown
+    The user can use this FlaskClient object to test api calls
+
     A built and instantiated Flask app object should
     be assigned to the `app` property
-    This `app` property is used to yield a test client
-    for each test, which is then passed to said test and
-    its corresponding setUp and tearDown methods
 
     Can be used with unittest.TestSuite
     '''
@@ -118,14 +129,17 @@ class ClientTestCase(unittest.TestCase):
                 self.tearDown = orig_teardown
 
 
-class AppTestCase(unittest.TestCase):
+class AppTestCase(UtilityTestCase):
     '''
     Test your flask web app using a Flask object
 
+    A FlaskClient object is created by calling the create_app function for **each**
+    test set (i.e setUp, test method, tearDown) - this same object is then passed
+    to the setUp, test method and tearDown
+    The user can use this Flask object to test the app
+
     The `create_app` function should create/configure/set up and return
     a Flask app object
-    This function will be called for each test - the built app will be
-    passed to the test, as well as its corresponding setUp and tearDown methods
 
     Can be used with unittest.TestSuite
     '''
@@ -158,24 +172,24 @@ class AppTestCase(unittest.TestCase):
         orig_setup = self.setUp
         orig_teardown = self.tearDown
         # Instance the app
-        with self.create_app() as app:
-            try:
-                '''
-                Override the method to create a partially built method - pass in the app
+        app = self.create_app()
+        try:
+            '''
+            Override the method to create a partially built method - pass in the app
 
-                super().run can now call this test method without passing anything and it'll all work out
-                '''
-                setattr(self, self._testMethodName, functools.partial(orig_test, app))
-                # Also override the set up and tear down methods similarly
-                self.setUp = functools.partial(orig_setup, app)
-                self.tearDown = functools.partial(orig_teardown, app)
-                # Call the actual test
-                return super().run(result)
-            finally:
-                # Restore the original methods
-                setattr(self, self._testMethodName, orig_test)
-                self.setUp = orig_setup
-                self.tearDown = orig_teardown
+            super().run can now call this test method without passing anything and it'll all work out
+            '''
+            setattr(self, self._testMethodName, functools.partial(orig_test, app))
+            # Also override the set up and tear down methods similarly
+            self.setUp = functools.partial(orig_setup, app)
+            self.tearDown = functools.partial(orig_teardown, app)
+            # Call the actual test
+            return super().run(result)
+        finally:
+            # Restore the original methods
+            setattr(self, self._testMethodName, orig_test)
+            self.setUp = orig_setup
+            self.tearDown = orig_teardown
 
     def debug(self):
         # Almost identical to the run method above
@@ -183,22 +197,22 @@ class AppTestCase(unittest.TestCase):
         orig_setup = self.setUp
         orig_teardown = self.tearDown
         # Instance the app
-        with self.create_app() as app:
-            try:
-                '''
-                Override the method to create a partially built method - pass in the app
+        app = self.create_app()
+        try:
+            '''
+            Override the method to create a partially built method - pass in the app
 
-                super().debug can now call this test method without passing anything and it'll all work out
-                '''
-                setattr(self, self._testMethodName, functools.partial(orig_test, app))
-                # Also override the set up and tear down methods similarly
-                self.setUp = functools.partial(orig_setup, app)
-                self.tearDown = functools.partial(orig_teardown, app)
-                # Call the actual test
-                super().debug()
-            finally:
-                # Restore the original methods
-                setattr(self, self._testMethodName, orig_test)
-                self.setUp = orig_setup
-                self.tearDown = orig_teardown
+            super().debug can now call this test method without passing anything and it'll all work out
+            '''
+            setattr(self, self._testMethodName, functools.partial(orig_test, app))
+            # Also override the set up and tear down methods similarly
+            self.setUp = functools.partial(orig_setup, app)
+            self.tearDown = functools.partial(orig_teardown, app)
+            # Call the actual test
+            super().debug()
+        finally:
+            # Restore the original methods
+            setattr(self, self._testMethodName, orig_test)
+            self.setUp = orig_setup
+            self.tearDown = orig_teardown
 
