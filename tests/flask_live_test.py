@@ -9,25 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 from tests.app_factory import build_app
-
-
-class MockUser:
-    username = 'Marty_McFly'
-    password = 'Ac1d1f1c4t10n@sh4rk'
-
-
-class MockPost:
-    def __init__(self, title: str, body: str):
-        self.title = title
-        self.body = body
-
-
-class Posts:
-    posts = (
-        MockPost('Finite time', 'Chances last a finite time'),
-        MockPost('Walt Disney', 'Seven months of suicide'),
-        MockPost('Turned away', 'Turn back the clock\nFall onto the ground')
-    )
+from tests.mockdata import MockUser, MockPosts
 
 
 class TestBase(flask_unittest.LiveTestCase):
@@ -45,7 +27,6 @@ class TestBase(flask_unittest.LiveTestCase):
     '''
     driver: Union[Chrome, None] = None
     std_wait: Union[WebDriverWait, None] = None
-    short_wait: Union[WebDriverWait, None] = None
 
     ### setUpClass and tearDownClass for the entire class
         # Not quite mandatory, but this is the best place to set up and tear down selenium 
@@ -57,7 +38,6 @@ class TestBase(flask_unittest.LiveTestCase):
         options.add_argument('--headless')
         cls.driver = Chrome(options=options)
         cls.std_wait = WebDriverWait(cls.driver, 5)
-        cls.short_wait = WebDriverWait(cls.driver, 1)
     
     @classmethod
     def tearDownClass(cls):
@@ -210,7 +190,7 @@ class TestBlog(TestBase):
     '''
     Test the blog posts functionality of the app
     '''
-    posts = Posts.posts
+    posts = MockPosts.posts
 
     ### setUp and tearDown methods per testcase (not mandatory)
 

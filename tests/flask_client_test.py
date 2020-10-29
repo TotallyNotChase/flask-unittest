@@ -4,29 +4,12 @@ import flask_unittest
 from flask.app import Flask
 from flask.testing import FlaskClient
 from flask.wrappers import Response
+from flask.globals import g, session, request
 from bs4 import BeautifulSoup
 from bs4.element import PageElement
 
 from tests.app_factory import build_app
-
-
-class MockUser:
-    username = 'Marty_McFly'
-    password = 'Ac1d1f1c4t10n@sh4rk'
-
-
-class MockPost:
-    def __init__(self, title: str, body: str):
-        self.title = title
-        self.body = body
-
-
-class Posts:
-    posts = (
-        MockPost('Finite time', 'Chances last a finite time'),
-        MockPost('Walt Disney', 'Seven months of suicide'),
-        MockPost('Turned away', 'Turn back the clock\nFall onto the ground')
-    )
+from tests.mockdata import MockUser, MockPosts
 
 
 class TestBase(flask_unittest.ClientTestCase):
@@ -101,9 +84,14 @@ class TestSetup(TestBase):
     # Assign the flask app
     app = build_app()
 
-    ### setUp method per testcase (mandatory, obviously) - should have client as a parameter
+    ### setUp and tearDown methods per testcase (not mandatory) - should have client as a parameter
 
     def setUp(self, client: FlaskClient):
+        # Make sure client is passed in correctly and has correct type
+        self.assertTrue(client is not None)
+        self.assertTrue(isinstance(client, FlaskClient))
+
+    def tearDown(self, client: FlaskClient):
         # Make sure client is passed in correctly and has correct type
         self.assertTrue(client is not None)
         self.assertTrue(isinstance(client, FlaskClient))
@@ -125,6 +113,38 @@ class TestSetup(TestBase):
         # Make sure client is passed in correctly and has correct type
         self.assertTrue(client is not None)
         self.assertTrue(isinstance(client, FlaskClient))
+
+
+class TestGlobals(TestBase):
+    '''
+    Make sure the testcases' test methods can
+    access the flask globals like request/session/g
+    '''
+    # Assign the flask app
+    app = build_app()
+
+    def test_session(self, client: FlaskClient):
+        # Make sure the session global is accessible and has correct values
+        self.signup(client, MockUser.username, MockUser.password)
+        self.login(client, MockUser.username, MockUser.password)
+        # Make sure the user_id is visible in session
+        self.assertTrue('user_id' in session)
+        self.delete(client)
+
+    def test_request(self, client: FlaskClient):
+        # Make sure the request global is accessible and has correct values
+        self.signup(client, MockUser.username, MockUser.password)
+        self.login(client, MockUser.username, MockUser.password)
+        # Make sure the request is at the correct endpoint
+        self.assertEqual(request.endpoint, 'blog.index')
+        self.delete(client)
+
+    def test_g(self, client: FlaskClient):
+        self.signup(client, MockUser.username, MockUser.password)
+        self.login(client, MockUser.username, MockUser.password)
+        # Make sure the g object is accessible and has the correct user assigned to it
+        self.assertEqual(g.user['username'], MockUser.username)
+        self.delete(client)
 
 
 class TestIndex(TestBase):
@@ -202,7 +222,7 @@ class TestBlog(TestBase):
     '''
     Test the blog posts functionality of the app
     '''
-    posts = Posts.posts
+    posts = MockPosts.posts
     # Assign the flask app
     app = build_app()
 
