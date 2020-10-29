@@ -5,6 +5,7 @@ from typing import Dict, Union, Optional
 from flask import Flask
 from flask.testing import FlaskClient
 
+
 class LiveTestCase(unittest.TestCase):
     '''
     Interacts with a live flask webserver running on a daemon thread
@@ -19,6 +20,7 @@ class LiveTestCase(unittest.TestCase):
     '''
     app: Union[Flask, None] = None
     server_url: Union[str, None] = None
+
 
 class ClientTestCase(unittest.TestCase):
     '''
@@ -83,12 +85,38 @@ class ClientTestCase(unittest.TestCase):
                 self.setUp = functools.partial(orig_setup, client)
                 self.tearDown = functools.partial(orig_teardown, client)
                 # Call the actual test
-                super().run(result)
+                return super().run(result)
             finally:
                 # Restore the original methods
                 setattr(self, self._testMethodName, orig_test)
                 self.setUp = orig_setup
                 self.tearDown = orig_teardown
+
+    def debug(self):
+        # Almost identical to the run method above
+        orig_test = getattr(self, self._testMethodName)
+        orig_setup = self.setUp
+        orig_teardown = self.tearDown
+        # Instance the client
+        with self.app.test_client(self.test_client_use_cookies, **self.test_client_kwargs) as client:
+            try:
+                '''
+                Override the method to create a partially built method - pass in the client
+
+                super().debug can now call this test method without passing anything and it'll all work out
+                '''
+                setattr(self, self._testMethodName, functools.partial(orig_test, client))
+                # Also override the set up and tear down methods similarly
+                self.setUp = functools.partial(orig_setup, client)
+                self.tearDown = functools.partial(orig_teardown, client)
+                # Call the actual test
+                super().debug()
+            finally:
+                # Restore the original methods
+                setattr(self, self._testMethodName, orig_test)
+                self.setUp = orig_setup
+                self.tearDown = orig_teardown
+
 
 class AppTestCase(unittest.TestCase):
     '''
@@ -142,7 +170,32 @@ class AppTestCase(unittest.TestCase):
                 self.setUp = functools.partial(orig_setup, app)
                 self.tearDown = functools.partial(orig_teardown, app)
                 # Call the actual test
-                super().run(result)
+                return super().run(result)
+            finally:
+                # Restore the original methods
+                setattr(self, self._testMethodName, orig_test)
+                self.setUp = orig_setup
+                self.tearDown = orig_teardown
+
+    def debug(self):
+        # Almost identical to the run method above
+        orig_test = getattr(self, self._testMethodName)
+        orig_setup = self.setUp
+        orig_teardown = self.tearDown
+        # Instance the app
+        with self.create_app() as app:
+            try:
+                '''
+                Override the method to create a partially built method - pass in the app
+
+                super().debug can now call this test method without passing anything and it'll all work out
+                '''
+                setattr(self, self._testMethodName, functools.partial(orig_test, app))
+                # Also override the set up and tear down methods similarly
+                self.setUp = functools.partial(orig_setup, app)
+                self.tearDown = functools.partial(orig_teardown, app)
+                # Call the actual test
+                super().debug()
             finally:
                 # Restore the original methods
                 setattr(self, self._testMethodName, orig_test)
