@@ -1,5 +1,4 @@
 import unittest
-from typing import Type, Union
 
 import flask_unittest
 from flask.app import Flask
@@ -17,23 +16,23 @@ class MockUser:
 
 
 class MockPost:
-    title: Union[str, None] = None
-    body: Union[str, None] = None
     def __init__(self, title: str, body: str):
         self.title = title
         self.body = body
 
 
 class Posts:
-    def __init__(self):
-        self.posts = (
-            MockPost('Finite time', 'Chances last a finite time'),
-            MockPost('Walt Disney', 'Seven months of suicide'),
-            MockPost('Turned away', 'Turn back the clock\nFall onto the ground')
-        )
+    posts = (
+        MockPost('Finite time', 'Chances last a finite time'),
+        MockPost('Walt Disney', 'Seven months of suicide'),
+        MockPost('Turned away', 'Turn back the clock\nFall onto the ground')
+    )
 
 
 class TestSetup(flask_unittest.ClientTestCase):
+    '''
+    Make sure the testcases are set up correctly
+    '''
     # Assign the flask app
     app = build_app()
 
@@ -60,6 +59,9 @@ class TestSetup(flask_unittest.ClientTestCase):
 
 
 class TestIndex(flask_unittest.ClientTestCase):
+    '''
+    Test the index page of the app
+    '''
     # Assign the flask app
     app = build_app()
 
@@ -72,9 +74,26 @@ class TestIndex(flask_unittest.ClientTestCase):
 
 
 class TestBase(flask_unittest.ClientTestCase):
-    userdata = MockUser()
+    '''
+    Base ClientTestCase with helper functions used across other testcases
+
+    Also sets up common properties
+
+    Note this class should only be extended, it does not have any tests
+    Nor does it set up app - that's per testcase
+
+    Though if you want to use the same app across multiple testcases instead
+    calling `build_app` in each of them, you can put set `app` here and it'll be
+    present in the classes that inherit this class
+
+    Alternately, you can use a global variable that stores the result of `build_app()`
+    and just assign that to each testcase, essentially using the same app instance
+    for all of them
+    '''
     # Make the test client use cookies - required for auth
     test_client_use_cookies = True
+
+    ### Helper functions (not mandatory)
 
     def signup(self, client: FlaskClient, username: str, password: str):
         # Sign up with given credentials
@@ -120,29 +139,31 @@ class TestAuth(TestBase):
     # Assign the flask app
     app = build_app()
 
+    ### Test methods (mandatory, obviously) - should have client as a parameter
+
     def test_register(self, client: FlaskClient):
-        self.signup(client, self.userdata.username, self.userdata.password)
+        self.signup(client, MockUser.username, MockUser.password)
         # Log in and delete the account
-        self.login(client, self.userdata.username, self.userdata.password)
+        self.login(client, MockUser.username, MockUser.password)
         self.delete(client)
 
     def test_login(self, client: FlaskClient):
         # Register an account first
-        self.signup(client, self.userdata.username, self.userdata.password)
+        self.signup(client, MockUser.username, MockUser.password)
         # Log in
-        self.login(client, self.userdata.username, self.userdata.password)
+        self.login(client, MockUser.username, MockUser.password)
         # Make sure username shown on index page is correct
         rv: Response = client.get('/')
         soup = BeautifulSoup(rv.data, 'html.parser')
-        self.assertEqual(soup.select_one('ul > li:nth-child(1) > span').text, self.userdata.username)
+        self.assertEqual(soup.select_one('ul > li:nth-child(1) > span').text, MockUser.username)
         # Delete the account
         self.delete(client)
 
     def test_duplicate_register(self, client: FlaskClient):
         # Register an account
-        self.signup(client, self.userdata.username, self.userdata.password)
+        self.signup(client, MockUser.username, MockUser.password)
         try:
-            self.signup(client, self.userdata.username, self.userdata.password)
+            self.signup(client, MockUser.username, MockUser.password)
             raise AssertionError('Signup should have failed')
         except AssertionError as e:
             if 'Signup should have failed' in e.args:
@@ -150,16 +171,17 @@ class TestAuth(TestBase):
                 raise e
             # Ignore the assertion error from signup method
         # Log back in and delete the account
-        self.login(client, self.userdata.username, self.userdata.password)
+        self.login(client, MockUser.username, MockUser.password)
         self.delete(client)
 
     def test_invalid_login(self, client: FlaskClient):
         try:
-            self.login(client, self.userdata.username, self.userdata.password)
-            raise AssertionError('Login should have failed')
+            self.login(client, MockUser.username, MockUser.password)
+            raise AssertionError('Login should have failed but it succeeded')
         except AssertionError as e:
             if 'Login should have failed' in e.args:
-                # Rethrow this exception since it should not be ignored
+                # Re raise the exception if it was raised manually after login
+                # i.e login somehow succeeded - even though it shouldn't have
                 raise e
             # Ignore the assertion error from login method
 
@@ -167,60 +189,82 @@ class TestBlog(TestBase):
     '''
     Test the blog posts functionality of the app
     '''
-    posts = Posts().posts
+    posts = Posts.posts
     # Assign the flask app
     app = build_app()
 
+    ### setUp and tearDown functions per testcase (not mandatory) - should have client as a param
+
     def setUp(self, client: FlaskClient):
-        self.signup(client, self.userdata.username, self.userdata.password)
-        self.login(client, self.userdata.username, self.userdata.password)
+        # Create an account and log in with it
+        self.signup(client, MockUser.username, MockUser.password)
+        self.login(client, MockUser.username, MockUser.password)
 
     def tearDown(self, client: FlaskClient):
+        # Delete the signed in account
         self.delete(client)
 
-    def create_post(self, client: FlaskClient, title: str, body: str):
-        # Creates a post and verifies its presence on the index page
-        rv: Response = client.post('/create', data={'title': title, 'body': body}, follow_redirects=True)
-        # Make sure the post creation was succesful and the new post is present on the index page
+    ### Helper functions (not mandatory)
+
+    def get_post_edit_link(self, rv: Response, title: str) -> str:
+        # Find the element that has the correct title (of post)
+        # The 2nd level parent of this element has an anchor tag as a child
+        # The href of this anchor tag is the edit link
+        soup = BeautifulSoup(rv.data, 'html.parser')
+        post_h1: PageElement = [h1 for h1 in soup.select('article.post > header > div > h1') if h1.text == title][0]
+        return post_h1.parent.parent.select_one('a')['href']
+
+    def get_post_delete_link(self, rv: Response, title: str) -> str:
+        # The delete link is just the same as the edit link, with the `edit` replaced with `delete`
+        return self.get_post_edit_link(rv, title).replace('edit', 'delete')
+
+    def verify_post_exists(self, rv: Response, title: str, body: str):
+        # Make sure the given post exists in the given response html
         soup = BeautifulSoup(rv.data, 'html.parser')
         post_titles = [h1.text for h1 in soup.select('article.post > header > div > h1')]
         self.assertIn(title, post_titles)
         post_bodies = [p.text for p in soup.select('article.post > p')]
         self.assertIn(body, post_bodies)
 
+    def create_post(self, client: FlaskClient, title: str, body: str):
+        # Creates a post and verifies its presence on the index page
+        rv: Response = client.post('/create', data={'title': title, 'body': body}, follow_redirects=True)
+        # Make sure the post creation was succesful and the new post is present on the index page
+        self.verify_post_exists(rv, title, body)
+
     def edit_post(self, client: FlaskClient, old_title: str, new_title: str, new_body: str):
-        # Go to the index page and find the post to get the edit link
+        # Go to the index page to find the post
         rv: Response = client.get('/')
-        soup = BeautifulSoup(rv.data, 'html.parser')
-        post_h1: PageElement = [h1 for h1 in soup.select('article.post > header > div > h1') if h1.text == old_title][0]
-        edit_link: str = post_h1.parent.parent.select_one('a')['href']
+        # Get the edit link from the response html
+        edit_link = self.get_post_edit_link(rv, old_title)
         rv: Response = client.post(edit_link, data={'title': new_title, 'body': new_body}, follow_redirects=True)
         # Make sure the post edit was succesful and the new post is present on the index page
-        soup = BeautifulSoup(rv.data, 'html.parser')
-        post_titles = [h1.text for h1 in soup.select('article.post > header > div > h1')]
-        self.assertIn(new_title, post_titles)
-        post_bodies = [p.text for p in soup.select('article.post > p')]
-        self.assertIn(new_body, post_bodies)
+        self.verify_post_exists(rv, new_title, new_body)
 
     def delete_post(self, client: FlaskClient, title: str, body: str):
-        # Go to the index page and find the post to get the delete link
+        # Go to the index page to find the post
         rv: Response = client.get('/')
-        soup = BeautifulSoup(rv.data, 'html.parser')
-        post_h1: PageElement = [h1 for h1 in soup.select('article.post > header > div > h1') if h1.text == title][0]
-        delete_link: str = post_h1.parent.parent.select_one('a')['href'].replace('edit', 'delete')
+        # Get the delete link from the response html
+        delete_link = self.get_post_edit_link(rv, title)
         rv: Response = client.post(delete_link, follow_redirects=True)
         # Make sure the post edit was succesful and the post has been deleted from the index page
-        soup = BeautifulSoup(rv.data, 'html.parser')
-        post_titles = [h1.text for h1 in soup.select('article.post > header > div > h1')]
-        self.assertNotIn(title, post_titles)
-        post_bodies = [p.text for p in soup.select('article.post > p')]
-        self.assertNotIn(body, post_bodies)
+        try:
+            self.verify_post_exists(rv, title, body)
+            raise AssertionError('Post should have been deleted but was found in page')
+        except AssertionError as e:
+            if 'Post should have been deleted' in e.args:
+                # Re raise the exception if it was raised manually after verify_post_exists
+                # i.e verify_post_exists somehow succeeded - even though it shouldn't have
+                raise e
+            # Ignore the assertion error from verify_post_exists method
+
+    ### Test methods (mandatory, obviously) - should have client as a parameter
 
     def test_index_after_login(self, client: FlaskClient):
         # Make sure the setUp actually worked and the client is logged in
         rv: Response = client.get('/')
         soup = BeautifulSoup(rv.data, 'html.parser')
-        self.assertEqual(soup.select_one('ul > li:nth-child(1) > span').text, self.userdata.username)
+        self.assertEqual(soup.select_one('ul > li:nth-child(1) > span').text, MockUser.username)
         self.assertTrue(soup.select('a[href="/auth/logout"]'))
         self.assertTrue(soup.select('a[href="/auth/delete"]'))
 
@@ -244,15 +288,15 @@ class TestBlog(TestBase):
         # Logout and check if the edit button on the post exists
         self.logout(client)
         rv: Response = client.get('/')
-        soup = BeautifulSoup(rv.data, 'html.parser')
-        post_h1: PageElement = [h1 for h1 in soup.select('article.post > header > div > h1') if h1.text == self.posts[0].title][0]
         try:
-            post_h1.parent.parent.select_one('a')['href']
+            self.get_post_edit_link(rv, self.posts[0].title)
             raise AssertionError('Edit link should not have been found')
         except TypeError:
+            # Ignore the type error from get_post_edit_link
             pass
         # Log back in as to not screw up the tearDown
-        self.login(client, self.userdata.username, self.userdata.password)
+        self.login(client, MockUser.username, MockUser.password)
+
 
 if __name__ == '__main__':
     unittest.main()
