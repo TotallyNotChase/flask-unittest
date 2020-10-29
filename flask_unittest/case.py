@@ -60,7 +60,7 @@ class ClientTestCase(unittest.TestCase):
         '''
         pass
 
-    def run(self, result: Optional[unittest.result.TestResult]) -> Optional[unittest.result.TestResult]:
+    def run(self, result: Optional[unittest.TestResult]) -> Optional[unittest.TestResult]:
         '''
         The test method currently being tested should be in _testMethodName
         The method will be overridden a bit, so the original should be stored safely
@@ -119,7 +119,7 @@ class AppTestCase(unittest.TestCase):
     def tearDown(self, app: Flask) -> None:
         pass
 
-    def run(self, result: Optional[unittest.result.TestResult]) -> Optional[unittest.result.TestResult]:
+    def run(self, result: Optional[unittest.TestResult]) -> Optional[unittest.TestResult]:
         '''
         The test method currently being tested should be in _testMethodName
         The method will be overridden a bit, so the original should be stored safely
