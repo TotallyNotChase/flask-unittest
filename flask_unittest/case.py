@@ -1,7 +1,7 @@
 import unittest
 import functools
 from inspect import isgeneratorfunction
-from typing import Callable, Dict, Generator, Union, Optional
+from typing import Callable, Dict, Iterator, Union, Optional
 
 from flask import Flask
 from flask.testing import FlaskClient
@@ -83,7 +83,9 @@ class _TestCaseImpl(unittest.TestCase):
             internal_method, orig_test, orig_setup, orig_teardown
         )
 
-    def _handle_resource_instantiation_and_internal_call(self, internal_method, orig_test, orig_setup, orig_teardown):
+    def _handle_resource_instantiation_and_internal_call(
+        self, internal_method: Callable, orig_test: Callable, orig_setup: Callable, orig_teardown: Callable
+    ):
         '''
         Instantiate the resources required by the specific testcase (i.e either app/client or both)
         Then call `_handle_try_finally_around_internal_call`, passing in the necessary parameters depending
@@ -95,7 +97,13 @@ class _TestCaseImpl(unittest.TestCase):
         raise NotImplementedError
 
     def _handle_try_finally_around_internal_call(
-        self, internal_method, orig_test, orig_setup, orig_teardown, *test_args, create_app_result=None
+        self,
+        internal_method: Callable,
+        orig_test: Callable,
+        orig_setup: Callable,
+        orig_teardown: Callable,
+        *test_args,
+        create_app_result: Union[Flask, Iterator[Flask], None] = None
     ):
         '''
         Override the test method and setUp, tearDown by preparing them with *test_args
@@ -179,7 +187,9 @@ class ClientTestCase(_TestCaseImpl):
         '''
         pass
 
-    def _handle_resource_instantiation_and_internal_call(self, internal_method, orig_test, orig_setup, orig_teardown):
+    def _handle_resource_instantiation_and_internal_call(
+        self, internal_method: Callable, orig_test: Callable, orig_setup: Callable, orig_teardown: Callable
+    ):
         '''
         ClientTestCase only needs to instantiate the client, in a with block
         Do just that, and pass the client to `_handle_try_finally_around_internal_call`, which will then
@@ -205,7 +215,7 @@ class AppTestCase(_TestCaseImpl):
 
     Can be used with unittest.TestSuite
     '''
-    def create_app(self) -> Union[Flask, Generator[Flask, None, None]]:
+    def create_app(self) -> Union[Flask, Iterator[Flask]]:
         '''
         Should return/yield a built/configured Flask app object
 
@@ -226,7 +236,7 @@ class AppTestCase(_TestCaseImpl):
 
     def _instantiate_app(self):
         if isgeneratorfunction(self.create_app):
-            # create_app yields a generator
+            # create_app yields an iterator/generator
             res = self.create_app()
             return res, next(res)
         else:
@@ -236,12 +246,14 @@ class AppTestCase(_TestCaseImpl):
                 raise TypeError(f'Expected create_app to return a Flask object - got {type(res)}')
             return res, res
 
-    def _handle_resource_instantiation_and_internal_call(self, internal_method, orig_test, orig_setup, orig_teardown):
+    def _handle_resource_instantiation_and_internal_call(
+        self, internal_method: Callable, orig_test: Callable, orig_setup: Callable, orig_teardown: Callable
+    ):
         '''
         AppTestCase needs to instantiate the app
-        It also has to handle generator cases, so use `_instantiate_app()`
+        It also has to handle generator/iterator cases, so use `_instantiate_app()`
         and pass the `res` to `_handle_try_finally_around_internal_call` as `create_app_result`
-        which will then handle tearing it down if it was a generator
+        which will then handle tearing it down if it was a generator/iterator
         
         Otherwise, the `app` needs to be passed to `_handle_try_finally_around_internal_call`, which will then
         pass it to the actual test method, setUp and tearDown
@@ -251,14 +263,14 @@ class AppTestCase(_TestCaseImpl):
             internal_method, orig_test, orig_setup, orig_teardown, app, create_app_result=res
         )
 
-    def _teardown_create_app_result(self, res: Union[Flask, Generator[Flask, None, None]]):
+    def _teardown_create_app_result(self, res: Union[Flask, Iterator[Flask]]):
         # Tear down the result obtained by calling create_app
-        # This is only here to handle when create_app returns a generator
+        # This is only here to handle when create_app returns a generator/iterator
         if isinstance(res, Flask):
-            # create_app did not return a generator - nothing to clean up
+            # create_app did not return a generator/iterator - nothing to clean up
             return
         else:
-            # Teardown the generator
+            # Teardown the generator/iterator
             try:
                 next(res)
             except StopIteration:
@@ -299,10 +311,12 @@ class AppClientTestCase(AppTestCase):
         '''
         pass
 
-    def _handle_resource_instantiation_and_internal_call(self, internal_method, orig_test, orig_setup, orig_teardown):
+    def _handle_resource_instantiation_and_internal_call(
+        self, internal_method: Callable, orig_test: Callable, orig_setup: Callable, orig_teardown: Callable
+    ):
         '''
         AppClientTestCase needs to instantiate the app *and* the client
-        It also has to handle generator cases, just like AppTestCase
+        It also has to handle generator/iterator cases, just like AppTestCase
         
         The `app` and `client` needs to be passed to `_handle_try_finally_around_internal_call`, which will then
         pass it to the actual test method, setUp and tearDown
