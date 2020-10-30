@@ -11,7 +11,7 @@ from tests.app_factory import build_app
 from tests.mockdata import MockUser
 
 
-class TestBase(flask_unittest.AppTestCase):
+class _TestBase(flask_unittest.AppTestCase):
     '''
     Base AppTestCase with helper functions used across other testcases
 
@@ -70,7 +70,7 @@ class TestBase(flask_unittest.AppTestCase):
         self.assertTrue(soup.select('a[href="/auth/login"]'))
 
 
-class TestSetup(TestBase):
+class TestSetup(_TestBase):
     '''
     Make sure the testcases are set up correctly
     and all expected properties exist and are correct
@@ -96,7 +96,7 @@ class TestSetup(TestBase):
         self.assertTrue(isinstance(app, Flask))
 
 
-class TestGlobals(TestBase):
+class TestGlobals(_TestBase):
     '''
     Make sure the testcases' test methods can
     access the flask globals like request/session/g

@@ -1,10 +1,12 @@
 import unittest
 
-from tests import suite
+from tests import livesuite, normalsuite
 
 
 def run():
-    unittest.TextTestRunner(verbosity=2).run(suite())
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(livesuite())
+    runner.run(normalsuite())
 
 
 if __name__ == '__main__':

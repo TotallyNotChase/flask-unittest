@@ -12,7 +12,7 @@ from tests.app_factory import build_app
 from tests.mockdata import MockUser, MockPosts
 
 
-class TestBase(flask_unittest.AppClientTestCase):
+class _TestBase(flask_unittest.AppClientTestCase):
     '''
     Base ClientTestCase with helper functions used across other testcases
 
@@ -87,7 +87,7 @@ class TestBase(flask_unittest.AppClientTestCase):
         self.assertTrue(soup.select('a[href="/auth/login"]'))
 
 
-class TestSetup(TestBase):
+class TestSetup(_TestBase):
     '''
     Make sure the testcases are set up correctly
     and all expected properties exist and are correct
@@ -119,7 +119,7 @@ class TestSetup(TestBase):
         self.assertTrue(isinstance(client, FlaskClient))
 
 
-class TestGlobals(TestBase):
+class TestGlobals(_TestBase):
     '''
     Make sure the testcases' test methods can
     access the flask globals like request/session/g
@@ -153,7 +153,7 @@ class TestGlobals(TestBase):
             self.assertEqual(request.endpoint, 'blog.update')
 
 
-class TestIndex(TestBase):
+class TestIndex(_TestBase):
     '''
     Test the index page of the app
     '''
@@ -168,7 +168,7 @@ class TestIndex(TestBase):
         self.assertTrue(soup.select('a[href="/auth/login"]'))
 
 
-class TestAuth(TestBase):
+class TestAuth(_TestBase):
     '''
     Test the signup/login part of the app
     '''
@@ -220,7 +220,7 @@ class TestAuth(TestBase):
             # Ignore the assertion error from login method
 
 
-class TestBlog(TestBase):
+class TestBlog(_TestBase):
     '''
     Test the blog posts functionality of the app
     '''
