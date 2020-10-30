@@ -43,15 +43,21 @@ class TestBase(flask_unittest.AppClientTestCase):
 
     def signup(self, client: FlaskClient, username: str, password: str):
         # Sign up with given credentials
-        rv: Response = client.post('/auth/register', data={'username': username, 'password': password}, follow_redirects=True)
+        rv: Response = client.post(
+            '/auth/register', data={'username': username, 'password': password}, follow_redirects=True
+        )
         soup = BeautifulSoup(rv.data, 'html.parser')
+
         # Make sure the log in page is showing
         self.assertIn('Log In', soup.find('title').text)
 
     def login(self, client: FlaskClient, username: str, password: str):
         # Log in with given credentials
-        rv: Response = client.post('/auth/login', data={'username': username, 'password': password}, follow_redirects=True)
+        rv: Response = client.post(
+            '/auth/login', data={'username': username, 'password': password}, follow_redirects=True
+        )
         soup = BeautifulSoup(rv.data, 'html.parser')
+
         # Make sure the Posts page is showing
         self.assertIn('Posts', soup.find('title').text)
         # Make sure login suceeded and the authorized links are showing
@@ -62,6 +68,7 @@ class TestBase(flask_unittest.AppClientTestCase):
         # Logs out of the signed in account
         rv: Response = client.get('/auth/logout', follow_redirects=True)
         soup = BeautifulSoup(rv.data, 'html.parser')
+
         # Make sure the Posts page is showing
         self.assertIn('Posts', soup.find('title').text)
         # Make sure logout suceeded and the non-authorized links are showing
@@ -72,6 +79,7 @@ class TestBase(flask_unittest.AppClientTestCase):
         # Deletes the signed in account
         rv: Response = client.post('/auth/delete', follow_redirects=True)
         soup = BeautifulSoup(rv.data, 'html.parser')
+
         # Make sure the Posts page is showing
         self.assertIn('Posts', soup.find('title').text)
         # Make sure delete suceeded and the non-authorized links are showing
@@ -116,7 +124,6 @@ class TestGlobals(TestBase):
     Make sure the testcases' test methods can
     access the flask globals like request/session/g
     '''
-
     def test_session(self, app: Flask, client: FlaskClient):
         # Make sure the session global is accessible and has correct values
         self.signup(client, MockUser.username, MockUser.password)
@@ -140,7 +147,6 @@ class TestGlobals(TestBase):
         self.assertEqual(g.user['username'], MockUser.username)
         self.delete(client)
 
-    
     def test_request_context(self, app: Flask, client: FlaskClient):
         # Demonstration of using the test_request_context
         with app.test_request_context('/1/update'):
@@ -262,18 +268,22 @@ class TestBlog(TestBase):
     def edit_post(self, client: FlaskClient, old_title: str, new_title: str, new_body: str):
         # Go to the index page to find the post
         rv: Response = client.get('/')
+
         # Get the edit link from the response html
         edit_link = self.get_post_edit_link(rv, old_title)
         rv: Response = client.post(edit_link, data={'title': new_title, 'body': new_body}, follow_redirects=True)
+
         # Make sure the post edit was succesful and the new post is present on the index page
         self.verify_post_exists(rv, new_title, new_body)
 
     def delete_post(self, client: FlaskClient, title: str, body: str):
         # Go to the index page to find the post
         rv: Response = client.get('/')
+
         # Get the delete link from the response html
         delete_link = self.get_post_edit_link(rv, title)
         rv: Response = client.post(delete_link, follow_redirects=True)
+
         # Make sure the post edit was succesful and the post has been deleted from the index page
         try:
             self.verify_post_exists(rv, title, body)
@@ -312,8 +322,10 @@ class TestBlog(TestBase):
     def test_unauthorized_post_edit(self, app: Flask, client: FlaskClient):
         # Make sure posts aren't editable by non post owners
         self.create_post(client, self.posts[0].title, self.posts[0].body)
+
         # Logout and check if the edit button on the post exists
         self.logout(client)
+
         rv: Response = client.get('/')
         try:
             self.get_post_edit_link(rv, self.posts[0].title)
@@ -321,6 +333,7 @@ class TestBlog(TestBase):
         except TypeError:
             # Ignore the type error from get_post_edit_link
             pass
+
         # Log back in as to not screw up the tearDown
         self.login(client, MockUser.username, MockUser.password)
 

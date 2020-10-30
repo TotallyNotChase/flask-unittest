@@ -2,6 +2,7 @@ import unittest
 
 import flask_unittest
 
+
 def suite():
     from tests.flask_live_test import TestSetup, TestIndex, TestAuth, TestBlog
     from tests.app_factory import build_app

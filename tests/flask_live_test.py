@@ -29,7 +29,7 @@ class TestBase(flask_unittest.LiveTestCase):
     std_wait: Union[WebDriverWait, None] = None
 
     ### setUpClass and tearDownClass for the entire class
-        # Not quite mandatory, but this is the best place to set up and tear down selenium 
+    # Not quite mandatory, but this is the best place to set up and tear down selenium
 
     @classmethod
     def setUpClass(cls):
@@ -38,7 +38,7 @@ class TestBase(flask_unittest.LiveTestCase):
         options.add_argument('--headless')
         cls.driver = Chrome(options=options)
         cls.std_wait = WebDriverWait(cls.driver, 5)
-    
+
     @classmethod
     def tearDownClass(cls):
         # Quit the webdriver
@@ -52,9 +52,10 @@ class TestBase(flask_unittest.LiveTestCase):
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'username'))).send_keys(username)
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'password'))).send_keys(password)
         self.std_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"]'))).click()
+
         # Make sure the signup was succesful and selenium was redirected to login page
-        self.std_wait.until(EC.presence_of_element_located(
-            (By.XPATH, '/html/body/section/header/h1[contains(text(), "Log In")]'))
+        self.std_wait.until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/section/header/h1[contains(text(), "Log In")]'))
         )
 
     def login(self, username: str, password: str):
@@ -63,26 +64,29 @@ class TestBase(flask_unittest.LiveTestCase):
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'username'))).send_keys(username)
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'password'))).send_keys(password)
         self.std_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"]'))).click()
+
         # Make sure the login was succesful and selenium was redirected to index page
-        self.std_wait.until(EC.presence_of_element_located(
-            (By.XPATH, '/html/body/section/header/h1[contains(text(), "Posts")]'))
+        self.std_wait.until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/section/header/h1[contains(text(), "Posts")]'))
         )
 
     def logout(self):
         # Logs out of the signed in account
         self.driver.get(f'{self.server_url}/auth/logout')
+
         # Make sure the logout was succesful and selenium was redirected to index page
-        self.std_wait.until(EC.presence_of_element_located(
-            (By.XPATH, '/html/body/section/header/h1[contains(text(), "Posts")]'))
+        self.std_wait.until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/section/header/h1[contains(text(), "Posts")]'))
         )
-    
+
     def delete(self):
         # Deletes the signed in account
         self.driver.get(f'{self.server_url}/auth/delete')
         self.std_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"]'))).click()
+
         # Make sure the delete was succesful and selenium was redirected to index page
-        self.std_wait.until(EC.presence_of_element_located(
-            (By.XPATH, '/html/body/section/header/h1[contains(text(), "Posts")]'))
+        self.std_wait.until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/section/header/h1[contains(text(), "Posts")]'))
         )
 
 
@@ -114,7 +118,7 @@ class TestIndex(TestBase):
     std_wait: Union[WebDriverWait, None] = None
 
     ### setUpClass and tearDownClass for the entire class
-        # Not quite mandatory, but this is the best place to set up and tear down selenium 
+    # Not quite mandatory, but this is the best place to set up and tear down selenium
 
     @classmethod
     def setUpClass(cls):
@@ -123,14 +127,14 @@ class TestIndex(TestBase):
         options.add_argument('--headless')
         cls.driver = Chrome(options=options)
         cls.std_wait = WebDriverWait(cls.driver, 5)
-    
+
     @classmethod
     def tearDownClass(cls):
         # Quit the webdriver
         cls.driver.quit()
 
     ### Test methods (mandatory, obviously)
-    
+
     def test_presence_of_links(self):
         # Make sure the register and login links are present in index page
         self.driver.get(self.server_url)
@@ -156,24 +160,30 @@ class TestAuth(TestBase):
         self.signup(MockUser.username, MockUser.password)
         # Log in
         self.login(MockUser.username, MockUser.password)
+
         # Go to index page and make sure username shown is correct
         self.driver.get(self.server_url)
         self.assertEqual(
-            self.std_wait.until(EC.presence_of_element_located(
-                (By.CSS_SELECTOR, 'ul > li:nth-child(1) > span'))).text,
-            MockUser.username)
+            self.std_wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'ul > li:nth-child(1) > span'))).text,
+            MockUser.username
+        )
+
         # Delete the account
         self.delete()
 
     def test_duplicate_register(self):
+        # Register an account
         self.signup(MockUser.username, MockUser.password)
+
+        # Try registering for the same account again
         try:
             self.signup(MockUser.username, MockUser.password)
             raise AssertionError('Signup should have failed')
         except TimeoutException:
             # Ignore the TimeoutException raised by `self.signup`
             pass
-        # Log back in and delete the account
+
+        # Log in and delete the account
         self.login(MockUser.username, MockUser.password)
         self.delete()
 
@@ -205,9 +215,12 @@ class TestBlog(TestBase):
 
     def go_to_edit_page(self, title: str, body: str):
         # Go to the edit page of given post - located by title
-        self.std_wait.until(EC.element_to_be_clickable(
-            (By.XPATH, f'/html/body/section/article[@class="post"]/header[div/h1[contains(text(), "{title}")]]/a'))
+        self.std_wait.until(
+            EC.element_to_be_clickable(
+                (By.XPATH, f'/html/body/section/article[@class="post"]/header[div/h1[contains(text(), "{title}")]]/a')
+            )
         ).click()
+
         # Make sure the pre existing values in the fields are correct
         title_field = self.std_wait.until(EC.presence_of_element_located((By.ID, 'title')))
         body_field = self.std_wait.until(EC.presence_of_element_located((By.ID, 'body')))
@@ -217,11 +230,15 @@ class TestBlog(TestBase):
     def verify_post_exists(self, title: str, body: str):
         # Make sure the given post exists in the index page
         self.driver.get(self.server_url)
-        self.std_wait.until(EC.presence_of_element_located(
-            (By.XPATH, f'/html/body/section/article[@class="post"]/header/div/h1[contains(text(), "{title}")]'))
+        self.std_wait.until(
+            EC.presence_of_element_located(
+                (By.XPATH, f'/html/body/section/article[@class="post"]/header/div/h1[contains(text(), "{title}")]')
+            )
         )
-        self.std_wait.until(EC.presence_of_element_located(
-            (By.XPATH, f'/html/body/section/article[@class="post"]/p[contains(text(), "{body}")]'))
+        self.std_wait.until(
+            EC.presence_of_element_located(
+                (By.XPATH, f'/html/body/section/article[@class="post"]/p[contains(text(), "{body}")]')
+            )
         )
 
     def create_post(self, title: str, body: str):
@@ -230,11 +247,13 @@ class TestBlog(TestBase):
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'title'))).send_keys(title)
         self.std_wait.until(EC.presence_of_element_located((By.ID, 'body'))).send_keys(body)
         self.std_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"]'))).click()
+
         # Make sure the post creation was succesful and the new post is present on the index page
         self.verify_post_exists(title, body)
 
     def edit_post(self, old_title: str, old_body: str, new_title: str, new_body: str):
         self.driver.get(self.server_url)
+
         # Go to the edit form page of the post
         self.go_to_edit_page(old_title, old_body)
         # Clear the fields and edit in new data
@@ -245,16 +264,20 @@ class TestBlog(TestBase):
         title_field.send_keys(new_title)
         body_field.send_keys(new_body)
         self.std_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"][value="Save"]'))).click()
+
         # Make sure the post creation was succesful and the new post is present on the index page
         self.verify_post_exists(new_title, new_body)
 
     def delete_post(self, title: str, body: str):
         self.driver.get(self.server_url)
+
         # Go to the edit form page of the post
         self.go_to_edit_page(title, body)
         # Delete the post
-        self.std_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"][value="Delete"]'))).click()
+        self.std_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"][value="Delete"]'))
+                            ).click()
         self.std_wait.until(EC.alert_is_present()).accept()
+
         # Make sure deletion was successful and the post does not exist anymore
         try:
             self.verify_post_exists(title, body)
@@ -289,8 +312,10 @@ class TestBlog(TestBase):
     def test_unauthorized_post_edit(self):
         # Make sure posts aren't editable by non post owners
         self.create_post(self.posts[0].title, self.posts[0].body)
+
         # Logout and check if the edit button on the post exists
         self.logout()
+
         # Make sure the edit anchor tag does not exist
         try:
             self.go_to_edit_page(self.posts[0].title, self.posts[0].body)
@@ -298,6 +323,7 @@ class TestBlog(TestBase):
         except TimeoutException:
             # Element does not exist - as expected
             pass
+
         # Log back in as to not screw up the tearDown
         self.login(MockUser.username, MockUser.password)
 

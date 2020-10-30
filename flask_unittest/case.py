@@ -79,7 +79,9 @@ class _TestCaseImpl(unittest.TestCase):
         + call `super().run`/`super().debug`
         + clean up after itself
         '''
-        return self._handle_resource_instantiation_and_internal_call(internal_method, orig_test, orig_setup, orig_teardown)
+        return self._handle_resource_instantiation_and_internal_call(
+            internal_method, orig_test, orig_setup, orig_teardown
+        )
 
     def _handle_resource_instantiation_and_internal_call(self, internal_method, orig_test, orig_setup, orig_teardown):
         '''
@@ -92,7 +94,9 @@ class _TestCaseImpl(unittest.TestCase):
         '''
         raise NotImplementedError
 
-    def _handle_try_finally_around_internal_call(self, internal_method, orig_test, orig_setup, orig_teardown, *test_args, create_app_result=None):
+    def _handle_try_finally_around_internal_call(
+        self, internal_method, orig_test, orig_setup, orig_teardown, *test_args, create_app_result=None
+    ):
         '''
         Override the test method and setUp, tearDown by preparing them with *test_args
         content of *test_args varies by testcase and should be passed by `_handle_resource_instantiation_and_internal_call`
@@ -123,6 +127,7 @@ class _TestCaseImpl(unittest.TestCase):
                 # If the object has _teardown_create_app_result method - it's a AppTestCase/AppClientTestCase
                 # In which case, handle tearing down the result gotten from `create_app` (should be passed as an arg)
                 getattr(self, '_teardown_create_app_result')(create_app_result)
+
             # Restore the original methods
             setattr(self, self._testMethodName, orig_test)
             self.setUp = orig_setup
@@ -156,7 +161,10 @@ class ClientTestCase(_TestCaseImpl):
         # Verify self.app.testing is set to `True`
         if self.app.testing != True:
             # Created app must be set to testing
-            raise AttributeError(f'Expected app.testing (where app is the result of `self.create_app()`) to have a value of True, got {self.app.testing} instead')
+            raise AttributeError(
+                f'Expected app.testing (where app is the result of `self.create_app()`) to have a value of True, got {self.app.testing} instead'
+            )
+        # Call the original __init__
         super().__init__(methodName)
 
     def setUp(self, client: FlaskClient) -> None:
@@ -178,7 +186,9 @@ class ClientTestCase(_TestCaseImpl):
         pass it to the actual test method, setUp and tearDown
         '''
         with self.app.test_client(self.test_client_use_cookies, **self.test_client_kwargs) as client:
-            return self._handle_try_finally_around_internal_call(internal_method, orig_test, orig_setup, orig_teardown, client)
+            return self._handle_try_finally_around_internal_call(
+                internal_method, orig_test, orig_setup, orig_teardown, client
+            )
 
 
 class AppTestCase(_TestCaseImpl):
@@ -195,7 +205,6 @@ class AppTestCase(_TestCaseImpl):
 
     Can be used with unittest.TestSuite
     '''
-
     def create_app(self) -> Union[Flask, Generator[Flask, None, None]]:
         '''
         Should return/yield a built/configured Flask app object
@@ -238,7 +247,9 @@ class AppTestCase(_TestCaseImpl):
         pass it to the actual test method, setUp and tearDown
         '''
         res, app = self._instantiate_app()
-        return self._handle_try_finally_around_internal_call(internal_method, orig_test, orig_setup, orig_teardown, app, create_app_result=res)
+        return self._handle_try_finally_around_internal_call(
+            internal_method, orig_test, orig_setup, orig_teardown, app, create_app_result=res
+        )
 
     def _teardown_create_app_result(self, res: Union[Flask, Generator[Flask, None, None]]):
         # Tear down the result obtained by calling create_app
@@ -282,7 +293,7 @@ class AppClientTestCase(AppTestCase):
         '''
         pass
 
-    def tearDown(self, app: Flask,  client: FlaskClient) -> None:
+    def tearDown(self, app: Flask, client: FlaskClient) -> None:
         '''
         Cleanup to do after running each test
         '''
@@ -298,4 +309,6 @@ class AppClientTestCase(AppTestCase):
         '''
         res, app = self._instantiate_app()
         with app.test_client(use_cookies=self.test_client_use_cookies, **self.test_client_kwargs) as client:
-            return self._handle_try_finally_around_internal_call(internal_method, orig_test, orig_setup, orig_teardown, app, client, create_app_result=res)
+            return self._handle_try_finally_around_internal_call(
+                internal_method, orig_test, orig_setup, orig_teardown, app, client, create_app_result=res
+            )

@@ -38,14 +38,12 @@ def get_post(id, check_author=True):
     :raise 403: if the current user isn't the author
     """
     post = (
-        get_db()
-        .execute(
+        get_db().execute(
             "SELECT p.id, title, body, created, author_id, username"
             " FROM post p JOIN user u ON p.author_id = u.id"
             " WHERE p.id = ?",
-            (id,),
-        )
-        .fetchone()
+            (id, ),
+        ).fetchone()
     )
 
     if post is None:
@@ -101,16 +99,14 @@ def update(id):
             flash(error)
         else:
             db = get_db()
-            db.execute(
-                "UPDATE post SET title = ?, body = ? WHERE id = ?", (title, body, id)
-            )
+            db.execute("UPDATE post SET title = ?, body = ? WHERE id = ?", (title, body, id))
             db.commit()
             return redirect(url_for("blog.index"))
 
     return render_template("blog/update.html", post=post)
 
 
-@bp.route("/<int:id>/delete", methods=("POST",))
+@bp.route("/<int:id>/delete", methods=("POST", ))
 @login_required
 def delete(id):
     """Delete a post.
@@ -120,6 +116,6 @@ def delete(id):
     """
     get_post(id)
     db = get_db()
-    db.execute("DELETE FROM post WHERE id = ?", (id,))
+    db.execute("DELETE FROM post WHERE id = ?", (id, ))
     db.commit()
     return redirect(url_for("blog.index"))

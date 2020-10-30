@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from tests.app_factory import build_app
 from tests.mockdata import MockUser
 
+
 class TestBase(flask_unittest.AppTestCase):
     '''
     Base AppTestCase with helper functions used across other testcases
@@ -18,7 +19,6 @@ class TestBase(flask_unittest.AppTestCase):
     convenient in this case since the other testcases share the same methods/properties.
     As long as your testcase class extends flask_unittest.AppTestCase - it's fine
     '''
-
     def create_app(self) -> Flask:
         return build_app()
 
@@ -26,15 +26,21 @@ class TestBase(flask_unittest.AppTestCase):
 
     def signup(self, client: FlaskClient, username: str, password: str):
         # Sign up with given credentials
-        rv: Response = client.post('/auth/register', data={'username': username, 'password': password}, follow_redirects=True)
+        rv: Response = client.post(
+            '/auth/register', data={'username': username, 'password': password}, follow_redirects=True
+        )
         soup = BeautifulSoup(rv.data, 'html.parser')
+
         # Make sure the log in page is showing
         self.assertIn('Log In', soup.find('title').text)
 
     def login(self, client: FlaskClient, username: str, password: str):
         # Log in with given credentials
-        rv: Response = client.post('/auth/login', data={'username': username, 'password': password}, follow_redirects=True)
+        rv: Response = client.post(
+            '/auth/login', data={'username': username, 'password': password}, follow_redirects=True
+        )
         soup = BeautifulSoup(rv.data, 'html.parser')
+
         # Make sure the Posts page is showing
         self.assertIn('Posts', soup.find('title').text)
         # Make sure login suceeded and the authorized links are showing
@@ -45,6 +51,7 @@ class TestBase(flask_unittest.AppTestCase):
         # Logs out of the signed in account
         rv: Response = client.get('/auth/logout', follow_redirects=True)
         soup = BeautifulSoup(rv.data, 'html.parser')
+
         # Make sure the Posts page is showing
         self.assertIn('Posts', soup.find('title').text)
         # Make sure logout suceeded and the non-authorized links are showing
@@ -55,6 +62,7 @@ class TestBase(flask_unittest.AppTestCase):
         # Deletes the signed in account
         rv: Response = client.post('/auth/delete', follow_redirects=True)
         soup = BeautifulSoup(rv.data, 'html.parser')
+
         # Make sure the Posts page is showing
         self.assertIn('Posts', soup.find('title').text)
         # Make sure delete suceeded and the non-authorized links are showing
@@ -74,7 +82,7 @@ class TestSetup(TestBase):
         # Make sure app is passed in correctly and has correct type
         self.assertTrue(app is not None)
         self.assertTrue(isinstance(app, Flask))
-    
+
     def tearDown(self, app: Flask):
         # Make sure app is passed in correctly and has correct type
         self.assertTrue(app is not None)
@@ -134,4 +142,3 @@ class TestGlobals(TestBase):
 
 if __name__ == '__main__':
     unittest.main()
-

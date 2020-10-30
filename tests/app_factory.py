@@ -1,6 +1,7 @@
 from tests.flaskr import create_app
 from tests.flaskr.db import init_db
 
+
 def build_app():
     # Create and set up the app
     # Do all the app config + pre launch setup here

@@ -7,10 +7,11 @@ from .utils import _partialclass
 # A constant placeholder to signify default timeout parameter
 _GLOBAL_DEFAULT_TIMEOUT = object()
 
+
 class LiveTestLoader(unittest.TestLoader):
     suiteClass = LiveTestSuite
 
-    def __init__(self, flask_app, timeout: Union[float, None]=_GLOBAL_DEFAULT_TIMEOUT):
+    def __init__(self, flask_app, timeout: Union[float, None] = _GLOBAL_DEFAULT_TIMEOUT):
         '''
         Partially construct the TestSuite class
         unittest.TestLoader works with unittest.TestSuite,
@@ -27,11 +28,10 @@ class LiveTestLoader(unittest.TestLoader):
         '''
 
         self.suiteClass = _partialclass(
-            LiveTestSuite,
-            flask_app,
-            timeout if timeout is not _GLOBAL_DEFAULT_TIMEOUT else None
+            LiveTestSuite, flask_app, timeout if timeout is not _GLOBAL_DEFAULT_TIMEOUT else None
         )
         super().__init__()
+
 
 # A constant placeholder to signify default live test loader parameter
 defaultLiveTestLoader = object()
