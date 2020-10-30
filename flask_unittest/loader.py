@@ -2,7 +2,7 @@ import unittest
 from typing import Union
 
 from .suite import LiveTestSuite
-from .utils import partialclass
+from .utils import _partialclass
 
 # A constant placeholder to signify default timeout parameter
 _GLOBAL_DEFAULT_TIMEOUT = object()
@@ -26,7 +26,7 @@ class LiveTestLoader(unittest.TestLoader):
         parameter has already been passed to `suiteClass` - but it hasn't been instantiated - it's still a class!
         '''
 
-        self.suiteClass = partialclass(
+        self.suiteClass = _partialclass(
             LiveTestSuite,
             flask_app,
             timeout if timeout is not _GLOBAL_DEFAULT_TIMEOUT else None

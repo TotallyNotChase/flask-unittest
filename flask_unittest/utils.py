@@ -1,6 +1,6 @@
 import functools
 
-def partialclass(cls, *args, **kwds):
+def _partialclass(cls, *args, **kwds):
     '''
     Return a partially constructed class from given class
 
