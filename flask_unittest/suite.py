@@ -33,7 +33,7 @@ class LiveTestSuite(unittest.TestSuite):
         self._setup_testcases()
         return super().run(result, debug)
 
-    ### Private functions specific to flask-unittest testcases
+    ### Private helper methods
 
     def _setup_testcases(self):
         # Set up required properties in all testcases in current testsuite
