@@ -43,7 +43,20 @@ class _TestCaseImpl(unittest.TestCase):
     ### Utility functions exposed to the user
 
     def assertStatus(self, rv: Response, expected_status: int):
+        # Assert the status code of given response
         self.assertEqual(rv.status_code, expected_status)
+
+    def assertResponseEqual(self, rv: Response, expected_response):
+        # Assert the expected_response is equal to the given response's .data
+        self.assertEqual(rv.data, expected_response)
+
+    def assertInResponse(self, member, rv: Response):
+        # Assert the given member exists in response.data
+        self.assertIn(member, rv.data)
+
+    def assertLocationHeader(self, rv: Response, expected_location: str):
+        # Assert the expected_location matches the location key present in the given response's header
+        self.assertEqual(rv.headers['Location'], expected_location)
 
     ### Override run and debug to provide the extra functionality
 
