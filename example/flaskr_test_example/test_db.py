@@ -1,12 +1,12 @@
 import unittest
-from typing import Iterator, Union
 
 import sqlite3
 import flask_unittest
 from flask import Flask
 
-from tests.flaskr.db import get_db
-from tests.flaskr_test_example.conftest import _create_app
+from example.flaskr.db import get_db
+from example.flaskr_test_example.conftest import _create_app
+
 
 class TestDB(flask_unittest.AppTestCase):
 

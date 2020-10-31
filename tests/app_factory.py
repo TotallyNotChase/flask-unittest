@@ -1,5 +1,5 @@
-from tests.flaskr import create_app
-from tests.flaskr.db import init_db
+from example.flaskr import create_app
+from example.flaskr.db import init_db
 
 
 def build_app():

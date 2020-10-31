@@ -3,7 +3,7 @@ import unittest
 import flask_unittest
 from flask.testing import FlaskClient
 
-from tests.flaskr import create_app
+from example.flaskr import create_app
 
 
 class TestConfig(unittest.TestCase):

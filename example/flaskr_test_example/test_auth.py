@@ -6,8 +6,8 @@ from flask import Flask
 from flask.testing import FlaskClient
 from flask import g, session
 
-from tests.flaskr.db import get_db
-from tests.flaskr_test_example.conftest import AuthActions, TestBase
+from example.flaskr.db import get_db
+from example.flaskr_test_example.conftest import AuthActions, TestBase
 
 
 @dataclass

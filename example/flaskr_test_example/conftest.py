@@ -1,21 +1,21 @@
 import os
 import tempfile
-from typing import Iterator, Union
+from typing import Iterator
 
 import flask_unittest
 from flask import Flask
 from flask.testing import FlaskClient
 
-from tests.flaskr import create_app
-from tests.flaskr.db import close_db, get_db
-from tests.flaskr.db import init_db
+from example.flaskr import create_app
+from example.flaskr.db import close_db, get_db
+from example.flaskr.db import init_db
 
 # read in SQL for populating test data
 with open(os.path.join(os.path.dirname(__file__), "data.sql"), "rb") as f:
     _data_sql = f.read().decode("utf8")
 
 
-def _create_app(self):
+def _create_app(self) -> Iterator[Flask]:
     """Create and configure a new app instance for each test."""
     # create a temporary file to isolate the database for each test
     db_fd, db_path = tempfile.mkstemp()
