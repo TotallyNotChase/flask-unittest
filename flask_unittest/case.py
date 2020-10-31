@@ -50,6 +50,10 @@ class _TestCaseImpl(unittest.TestCase):
         # Assert the expected_response is equal to the given response's .data
         self.assertEqual(rv.data, expected_response)
 
+    def assertJsonEqual(self, rv: Response, expected_json: Dict):
+        # Assert the expected_json is equal to the given response's .json
+        self.assertEqual(rv.json, expected_json)
+
     def assertInResponse(self, member, rv: Response):
         # Assert the given member exists in response.data
         self.assertIn(member, rv.data)
