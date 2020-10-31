@@ -1,2 +1,433 @@
 # flask-unittest
-A simple solution to integrate flask testing with unittest
+A simple solution to unittest flask application using `unittest`
+
+Provides functionality for testing using the `Flask` object, the `FlaskClient` object, a combination of the two, or even a live flask server!
+
+This library is intended to provide utilities that help the user follow the [official flask application testing guidelines](https://flask.palletsprojects.com/en/1.1.x/testing/). It is recommended you familiarize yourself with this page.
+
+# Features
+* Test flask applications using the `Flask` object returned by `create_app`
+  * Access to `app_context`
+  * Access to flask globals like `g`, `request`, and `session`
+  * Access to `test_client` through the `Flask` object
+  * Same `Flask` object will be usable in the test method and its corresponding `setUp` and `tearDown` methods
+  * App is created per test method in the testcase
+* Test flask applications using a `FlaskClient` object
+  * Access to flask globals like `g`, `request`, and `session`
+  * Test your flask app in an **API centric way** using the functionality provided by `FlaskClient`
+  * Same `FlaskClient` object will be usable in the test method and its corresponding `setUp` and `tearDown` methods
+  * The `FlaskClient` is created per test method of the testcase by using the given `Flask` object (App)
+  * App can either be constant throughout the testcase, or be created per test method
+* Test flask applications running *live* on localhost - using your preferred **headless browser** (e.g `selenium`, `pyppeteer` etc)
+  * Contrary to the previous ones, this functionality is handled by a test suite, rather than a test case
+  * The flask server is started in a daemon thread when the `LiveTestSuite` runs - it runs for the duration of the program
+* Simple access to the context so you can access flask globals (`g`, `request`, and `session`) with minimal headaches and no gotchas!
+* Support for using generators as `create_app` - essentially emulating `pytest`'s fixtures (more of that in `flaskr_test_example`)
+* No extra dependencies! (well, except for `flask`...) - easily integratable with the built in `unittest` module
+
+# Quick Start
+Install `flask-unittest` from pypi using `pip`
+```bash
+pip install flask-unittest
+```
+
+Import in your module and start testing!
+```py
+import flask_unittest
+```
+
+Now, before moving on to the examples below - I **highly recommend** checking out the official [Testing Flask Applications example](https://flask.palletsprojects.com/en/1.1.x/testing/). It's *extremely simple* and should take only 5 minutes to digest.
+
+Alternatively, you can directly dive into the examples at [`tests/`](./tests/). Though this might be a bit intimidating if you're just starting out at testing flask apps.
+
+# Test using `FlaskClient`
+If you want to use a [`FlaskClient`](https://flask.palletsprojects.com/en/1.1.x/api/#flask.Flask.test_client) object to test - this is the testcase for you!
+
+This testcase creates a `FlaskClient` object for each test method. But the `app` property is kept constant.
+```py
+import flask_unittest
+
+class TestFoo(flast_unittest.ClientTestCase):
+    # Assign the `Flask` app object
+    app = ...
+
+    def setUp(self, client):
+        # Perform set up before each test, using client
+        pass
+
+    def tearDown(self, client):
+        # Perform tear down after each test, using client
+        pass
+
+    def test_foo_with_client(self, client):
+        # Use the client here
+        pass
+
+    def test_bar_with_client(self, client):
+        # Use the client here
+        pass
+```
+
+Each test method, as well as the `setUp` and `tearDown` methods, should take `client` as a parameter. You can name this parameter whatever you want of course. But the 2nd parameter (including `self` as first) is a `FlaskClient` object.
+
+Note that the `client` is different for *each test method*. But it's the same for a singular test method and its corresponding `setUp` and `tearDown` methods.
+
+What does this mean? Well, when it's time to run `test_foo_with_client`, a `FlaskClient` object is created using `app.test_client()`. Then this is passed to `setUp`, which does its job of setup. After that, the same `client` is passed to `test_foo_with_client`, which does the testing. Finally, the same `client` again, is passed to `tearDown` - which cleans the stuff up.
+
+This essentially means that you can use `setUp` to login to your web app - which stores the `session` that is shared in the actual test and in the `tearDown`.
+
+**NOTE**: If you want to enable the use of cookies so the `client` can store `session` and/or other cookies. You need to put `test_client_use_cookies = True` in your testcase body.
+
+You can also pass in extra kwargs to the `test_client()` call by setting `test_client_kwargs` in your testcase body.
+
+**Full Example**: [`flask_client_test.py`](./tests/flask_client_test.py)
+
+# Test using `Flask`
+If you want to use a [`Flask`](https://flask.palletsprojects.com/en/1.1.x/api/#flask.Flask) object to test - this is the testcase for you!
+
+This testcase creates a `Flask` object for each test method, using the `create_app` method implemented by the user
+```py
+import flask_unittest
+
+class TestFoo(flast_unittest.AppTestCase):
+
+    def create_app(self):
+        # Return/Yield a `Flask` object here
+        pass
+
+    def setUp(self, app):
+        # Perform set up before each test, using app
+        pass
+
+    def tearDown(self, app):
+        # Perform tear down after each test, using app
+        pass
+
+    def test_foo_with_app(self, app):
+        # Use the app here
+        pass
+
+    def test_bar_with_app(self, app):
+        # Use the app here
+        pass
+```
+The `create_app` function should return a `Flask` object representing the webapp to test
+
+You can also do any set up, extra config for the app (db init etc) here
+
+It's also possible (and encouraged) to `yield` a `Flask` object here instead of `return`ing one (essentially making this a generator function)
+This way, you can put cleanup right here after the `yield` and they will be executed once the test method has run
+
+See [Emulating official flask testing example using `flask-unittest`](#emulating-official-flask-testing-example-using-flask-unittest)
+
+Each test method, as well as the `setUp` and `tearDown` methods, should take `app` as a parameter. You can name this parameter whatever you want of course. But the 2nd parameter (including `self` as first) is a `Flask` object returned/yielded from the user provided `create_app`.
+
+Note that the `app` is different for *each test method*. But it's the same for a singular test method and its corresponding `setUp` and `tearDown` methods.
+
+What does this mean? Well, when it's time to run `test_foo_with_app`, a `Flask` object is created using `create_app()`. Then this is passed to `setUp`, which does its job of setup. After that, the same `app` is passed to `test_foo_with_app`, which does the testing. Finally, the same `app` again, is passed to `tearDown` - which cleans the stuff up.
+
+If `create_app` is a generator function. All the stuff after `yield app` will be executed after the test method (and its `tearDown` if any) has run
+
+**Full Example**: [`flask_app_test.py`](./tests/flask_app_test.py)
+
+# Test using both `Flask` and `FlaskClient`
+If you want to use both [`Flask`](https://flask.palletsprojects.com/en/1.1.x/api/#flask.Flask) *and* [`FlaskClient`](https://flask.palletsprojects.com/en/1.1.x/api/#flask.Flask.test_client) to test - this is the testcase for you!
+
+This testcase creates a `Flask`, using the `create_app` method implemented by the user, *and* a `FlaskClient` object from said `Flask` object, for each test method
+```py
+import flask_unittest
+
+class TestFoo(flast_unittest.AppClientTestCase):
+
+    def create_app(self):
+        # Return/Yield a `Flask` object here
+        pass
+
+    def setUp(self, app, client):
+        # Perform set up before each test, using app and client
+        pass
+
+    def tearDown(self, app, client):
+        # Perform tear down after each test, using app and client
+        pass
+
+    def test_foo_with_both(self, app, client):
+        # Use the app and client here
+        pass
+
+    def test_bar_with_both(self, app, client):
+        # Use the app and client here
+        pass
+```
+The `create_app` function should return a `Flask` object representing the webapp to test
+
+You can also do any set up, extra config for the app (db init etc) here
+
+It's also possible (and encouraged) to `yield` a `Flask` object here instead of `return`ing one (essentially making this a generator function)
+This way, you can put cleanup right here after the `yield` and they will be executed once the test method has run
+
+See [Emulating official flask testing example using `flask-unittest`](#emulating-official-flask-testing-example-using-flask-unittest)
+
+Each test method, as well as the `setUp` and `tearDown` methods, should take `app` and `client` as a parameter. You can name these parameters whatever you want of course. But the 2nd parameter (including `self` as first) is a `Flask` object returned/yielded from the user provided `create_app`, and the third parameter is a `FlaskClient` object returned from calling `.test_client` on said `Flask` object.
+
+Note that the `app` and `client` are different for *each test method*. But they are the same for a singular test method and its corresponding `setUp` and `tearDown` methods.
+
+What does this mean? Well, when it's time to run `test_foo_with_both`, a `Flask` object is created using `create_app()`, and a `FlaskClient` object is created from it. Then they are passed to `setUp`, which does its job of setup. After that, the same `app` and `client` are passed to `test_foo_with_both`, which does the testing. Finally, the same `app` and `client` again, are passed to `tearDown` - which cleans the stuff up.
+
+If `create_app` is a generator function. All the stuff after `yield app` will be executed after the test method (and its `tearDown` if any) has run
+
+**Full Example**: [`flask_appclient_test.py`](./tests/flask_appclient_test.py)
+
+# About request context and flask globals
+Both `ClientTestCase` and `AppClientTestCase` allow you to use flask gloabls, such as `request`, `g`, and `session`, directly in your test method (and your `setUp` and `tearDown` methods)
+
+This is because the `client` is *instantiated using a `with` block*, and the test method, the `setUp` and `tearDown` methods **happen inside the `with` block**
+
+Very rough psuedocode representation of this would look like-
+```py
+with app.test_client() as client:
+    self.setUp(client)
+    self.test_method(client)
+    self.tearDown(client)
+```
+This means you can treat everything in your test method, and `setUp` and `tearDown` methods, as if they are within a `with client:` block
+
+Practically, this lets you use the flask globals after making a request using `client` - which is great for testing
+
+Additional info in the [official docs](https://flask.palletsprojects.com/en/1.1.x/testing/#keeping-the-context-around)
+
+# Emulating official flask testing example using `flask-unittest`
+The official flask testing example can be found [in the flask repo](https://github.com/pallets/flask/tree/master/examples/tutorial/tests)
+
+The original tests are written using `pytest`. This example demonstrates how `flask-unittest` can provide the same functionality for you, with even finer control!
+
+Note that this demonstration does not implement the `test_cli_runner` - since that is not directly supported by `flask-unittest` (yet). However, it's completely possible to simply use `.test_cli_runner()` on the `app` object in the testcases provided by `flask-unittest` to emulate this.
+
+The primary thing to demonstrate here, is to emulate the pytest fixtures defined in the original [`conftest.py`](https://github.com/pallets/flask/blob/master/examples/tutorial/tests/conftest.py)-
+```py
+@pytest.fixture
+def app():
+    """Create and configure a new app instance for each test."""
+    # create a temporary file to isolate the database for each test
+    db_fd, db_path = tempfile.mkstemp()
+    # create the app with common test config
+    app = create_app({"TESTING": True, "DATABASE": db_path})
+
+    # create the database and load test data
+    with app.app_context():
+        init_db()
+        get_db().executescript(_data_sql)
+
+    yield app
+
+    # close and remove the temporary database
+    os.close(db_fd)
+    os.unlink(db_path)
+
+
+@pytest.fixture
+def client(app):
+    """A test client for the app."""
+    return app.test_client()
+```
+
+As you can see, this creates the app **and** the test client *per test*. So we'll be using `AppClientTestCase` for this.
+
+Let's make a base class that provides functionality for this - all the other testcases can inherit from it. Defined in [`conftest.py`](./tests/flaskr_test_example/conftest.py)
+
+```py
+from typing import Iterator, Union
+
+import flask_unittest
+from flask import Flask
+from flask.testing import FlaskClient
+
+
+class TestBase(flask_unittest.AppClientTestCase):
+    # The tests expect to use the session object - so set test_client to use cookies
+    test_client_use_cookies = True
+
+    def create_app(self) -> Union[Flask, Iterator[Flask]]:
+        """Create and configure a new app instance for each test."""
+        # create a temporary file to isolate the database for each test
+        db_fd, db_path = tempfile.mkstemp()
+        # create the app with common test config
+        app = create_app({"TESTING": True, "DATABASE": db_path})
+
+        # create the database and load test data
+        with app.app_context():
+            init_db()
+            get_db().executescript(_data_sql)
+
+            # Yield the app
+            '''
+            This can be outside the `with` block too, but we need to 
+            call `close_db` before exiting current context
+            Otherwise windows will have trouble removing the temp file
+            that doesn't happen on unices though, which is nice
+            '''
+            yield app
+
+            ## Close the db
+            close_db()
+        
+        ## Cleanup temp file
+        os.close(db_fd)
+        os.remove(db_path)
+```
+
+This is very similar to the original pytest fixtures and achieves the exact same functionality in the actual testcases too!
+
+Do note however, there's an extra call inside `with app.app_context()` - `close_db`. Windows struggles to remove the temp database using `os.remove` if it hasn't been closed already - so we have to do that (this is true for the original pytest methods too).
+
+Also of note, creation of the `AuthActions` object should be handled manually in each of the test case. This is just how `unittest` works in contrast to `pytest`. This shouldn't pose any issue whatsoever though.
+
+Now let's look at an actual testcase. We'll be looking at `test_auth.py`, since it demonstrates the use of `app`, `client` and the flask globals very nicely.
+
+For context, the original file is defined at [`test_auth.py`](https://github.com/pallets/flask/blob/master/examples/tutorial/tests/test_auth.py)
+
+The full emulation of this file is at [`test_auth.py`](./tests/flaskr_test_example/test_auth.py)
+
+Ok! Let's look at the emulation of `test_register`.
+
+For context, this is the original function-
+```py
+def test_register(client, app):
+    # test that viewing the page renders without template errors
+    assert client.get("/auth/register").status_code == 200
+
+    # test that successful registration redirects to the login page
+    response = client.post("/auth/register", data={"username": "a", "password": "a"})
+    assert "http://localhost/auth/login" == response.headers["Location"]
+
+    # test that the user was inserted into the database
+    with app.app_context():
+        assert (
+            get_db().execute("select * from user where username = 'a'").fetchone()
+            is not None
+        )
+```
+
+And here's the `flask-unittest` version!
+```py
+from flask import Flask
+from flask.testing import FlaskClient
+
+from tests.flaskr_test_example.conftest import AuthActions, TestBase
+
+class TestAuth(TestBase):
+
+    def test_register(self, app: Flask, client: FlaskClient):
+        # test that viewing the page renders without template errors
+        self.assertStatus(client.get("/auth/register"), 200)
+
+        # test that successful registration redirects to the login page
+        response = client.post("/auth/register", data={"username": "a", "password": "a"})
+        self.assertLocationHeader(response, "http://localhost/auth/login")
+
+        # test that the user was inserted into the database
+        with app.app_context():
+            self.assertIsNotNone(
+                get_db().execute("select * from user where username = 'a'").fetchone()
+            )
+```
+See how similar it is? The only difference is that the function should be a method in a class that is extending `flask_unittest.AppClientTestCase` with `create_app` defined. In our case, that's `TestBase` from `conftest.py` - so we extend from that.
+
+As mentioned previously, each test method of an `AppClientTestCase` should have the parameters `self, app, client` - not necessarily with the same names but the second param **will be** the `Flask` object, and the third param **will be** the `FlaskClient` object
+
+Also, this is using `self.assert...` functions as per `unittest` convention. However, regular `assert`s should work just fine.
+
+Nice! Let's look at a function uses flask globals - `test_login`
+
+Here's the original snippet-
+```py
+def test_login(client, auth):
+    # test that viewing the page renders without template errors
+    assert client.get("/auth/login").status_code == 200
+
+    # test that successful login redirects to the index page
+    response = auth.login()
+    assert response.headers["Location"] == "http://localhost/"
+
+    # login request set the user_id in the session
+    # check that the user is loaded from the session
+    with client:
+        client.get("/")
+        assert session["user_id"] == 1
+        assert g.user["username"] == "test"
+
+```
+
+And here's the `flask-unittest` version-
+```py
+class TestAuth(TestBase):
+    
+    ....
+
+    def test_login(self, _, client: FlaskClient):
+        # test that viewing the page renders without template errors
+        self.assertStatus(client.get("/auth/login"), 200)
+
+        # test that successful login redirects to the index page
+        auth = AuthActions(client)
+        response = auth.login()
+        self.assertLocationHeader(response, "http://localhost/")
+
+        # login request set the user_id in the session
+        # check that the user is loaded from the session
+        client.get("/")
+        self.assertEqual(session["user_id"], 1)
+        self.assertEqual(g.user["username"], "test")
+```
+
+(this is a continuation of the previous example for `test_register`)
+
+Once again, very similar. But there's a couple of things to note here.
+
+Firstly, notice we are ignoring the second argument of `test_login`, since we have no reason to use `app` here. We do, however, need to use the `FlaskClient` object
+
+Also notice, we don't have to do `with client` to access the request context. `flask-unittest` already handles this for us, so we have direct access to `session` and `g`.
+
+Let's check out a case where we only use the `Flask` object and not the `FlaskClient` object - in which case, we can use `AppTestCase`.
+
+The original function, `test_get_close_db`, is defined at [`test_db.py`](https://github.com/pallets/flask/blob/master/examples/tutorial/tests/test_db.py)
+
+```py
+def test_get_close_db(app):
+    with app.app_context():
+        db = get_db()
+        assert db is get_db()
+
+    with pytest.raises(sqlite3.ProgrammingError) as e:
+        db.execute("SELECT 1")
+
+    assert "closed" in str(e.value)
+```
+
+The `flask-unittest` version can be seen at [`test_db.py`](./tests/flaskr_test_example/test_db.py)
+
+```py
+import flask_unittest
+from flask import Flask
+from flask.testing import FlaskClient
+from tests.flaskr_test_example.conftest import _create_app
+
+
+class TestDB(flask_unittest.AppTestCase):
+
+    def create_app(self) -> Union[Flask, Iterator[Flask]]:
+        return _create_app()
+
+    def test_get_close_db(self, app: Flask):
+        with app.app_context():
+            db = get_db()
+            assert db is get_db()
+
+        try:
+            db.execute("SELECT 1")
+        except sqlite3.ProgrammingError as e:
+            self.assertIn("closed", str(e.args[0]))
+
+```
+
+Very similar once again!
