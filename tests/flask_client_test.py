@@ -1,7 +1,6 @@
 import unittest
 
 import flask_unittest
-from flask.app import Flask
 from flask.testing import FlaskClient
 from flask.wrappers import Response
 from flask.globals import g, session, request
