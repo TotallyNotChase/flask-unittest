@@ -5,7 +5,7 @@ import flask_unittest
 from flask import Flask
 
 from example.flaskr.db import get_db
-from example.flaskr_test_example.conftest import _create_app
+from example.tests.conftest import _create_app
 
 
 class TestDB(flask_unittest.AppTestCase):

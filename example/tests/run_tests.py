@@ -1,6 +1,6 @@
 import unittest
 
-from example.flaskr_test_example import suite
+from example.tests import suite
 
 
 def run():
