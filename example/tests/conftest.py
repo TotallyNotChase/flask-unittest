@@ -45,9 +45,6 @@ def _create_app(self) -> Iterator[Flask]:
 
 
 class TestBase(flask_unittest.AppClientTestCase):
-    # The tests expect to use the session object - so set test_client to use cookies
-    test_client_use_cookies = True
-
     create_app = _create_app
 
 

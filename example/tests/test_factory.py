@@ -15,7 +15,6 @@ class TestConfig(unittest.TestCase):
 
 class TestHello(flask_unittest.ClientTestCase):
     app = create_app({"TESTING": True})
-    test_client_use_cookies = True
 
     def test_hello(self, client: FlaskClient):
         response = client.get("/hello")

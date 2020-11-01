@@ -32,8 +32,6 @@ class TestBase(flask_unittest.ClientTestCase):
     convenient in this case since the other testcases share the same methods/properties.
     As long as your testcase class extends flask_unittest.ClientTestCase - it's fine
     '''
-    # Make the test client use cookies - required for auth
-    test_client_use_cookies = True
 
     ### Helper functions (not mandatory)
 

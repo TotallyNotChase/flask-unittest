@@ -175,7 +175,7 @@ class ClientTestCase(_TestCaseImpl):
     '''
     app: Union[Flask, None] = None
     # Whether or not to use cookies in test client
-    test_client_use_cookies: bool = False
+    test_client_use_cookies: bool = True
     # kwargs to pass to test_client function
     test_client_kwargs: Dict = {}
 
@@ -306,7 +306,7 @@ class AppClientTestCase(AppTestCase):
     Can be used with unittest.TestSuite
     '''
     # Whether or not to use cookies in test client
-    test_client_use_cookies: bool = False
+    test_client_use_cookies: bool = True
     # kwargs to pass to test_client function
     test_client_kwargs: Dict = {}
 
