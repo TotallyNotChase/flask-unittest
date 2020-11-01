@@ -1,5 +1,5 @@
 # flask-unittest
-A simple solution to unittest flask application using `unittest`
+A hassle free solution to testing flask application using `unittest`
 
 Provides functionality for testing using the `Flask` object, the `FlaskClient` object, a combination of the two, or even a live flask server!
 
