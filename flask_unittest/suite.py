@@ -23,9 +23,6 @@ class LiveTestSuite(unittest.TestSuite):
     def __init__(
         self, flask_app: Flask, timeout: Union[float, None] = _GLOBAL_DEFAULT_TIMEOUT, tests: Iterable[_TestType] = ()
     ):
-        if flask_app.testing != True:
-            # Passed app must be set to testing
-            raise AttributeError(f'Expected flask_app.testing to have a value of True, got {flask_app.testing} instead')
         self._app = flask_app
         self._timeout = timeout if timeout is not _GLOBAL_DEFAULT_TIMEOUT else None
         self._port: int = flask_app.config.get('PORT', 5000)

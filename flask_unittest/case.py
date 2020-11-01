@@ -183,12 +183,6 @@ class ClientTestCase(_TestCaseImpl):
         # Verify self.app was provided
         if not self.app:
             raise NotImplementedError('property `app` must be assigned in ClientTestCase')
-        # Verify self.app.testing is set to `True`
-        if self.app.testing != True:
-            # Created app must be set to testing
-            raise AttributeError(
-                f'Expected app.testing (where app is the result of `self.create_app()`) to have a value of True, got {self.app.testing} instead'
-            )
         # Call the original __init__
         super().__init__(methodName)
 
