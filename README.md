@@ -22,7 +22,7 @@ This library is intended to provide utilities that help the user follow the [off
   * Contrary to the previous ones, this functionality is handled by a test suite, rather than a test case
   * The flask server is started in a daemon thread when the `LiveTestSuite` runs - it runs for the duration of the program
 * Simple access to the context so you can access flask globals (`g`, `request`, and `session`) with minimal headaches and no gotchas!
-* Support for using generators as `create_app` - essentially emulating `pytest`'s fixtures (more of that in `flaskr_test_example`)
+* Support for using generators as `create_app` - essentially emulating `pytest`'s fixtures (more of that in `example/tests/`)
 * No extra dependencies! (well, except for `flask`...) - easily integratable with the built in `unittest` module
 
 # Quick Start
@@ -38,7 +38,7 @@ import flask_unittest
 
 Now, before moving on to the examples below - I **highly recommend** checking out the official [Testing Flask Applications example](https://flask.palletsprojects.com/en/1.1.x/testing/). It's *extremely simple* and should take only 5 minutes to digest.
 
-Alternatively, you can directly dive into the examples at [`tests/`](./tests/). Though this might be a bit intimidating if you're just starting out at testing flask apps.
+Alternatively, you can directly dive into the examples at [`tests/`](./tests/) and [`example/tests/`](./example/tests). Though this might be a bit intimidating if you're just starting out at testing flask apps.
 
 # Test using `FlaskClient`
 If you want to use a [`FlaskClient`](https://flask.palletsprojects.com/en/1.1.x/api/#flask.Flask.test_client) object to test - this is the testcase for you!
@@ -178,6 +178,67 @@ If `create_app` is a generator function. All the stuff after `yield app` will be
 
 **Full Example**: [`flask_appclient_test.py`](./tests/flask_appclient_test.py)
 
+# Test using a headless browser (eg `selenium`, `pyppeteer` etc)
+If you want to test a live flask server using a headless browser - `LiveTestSuite` is for you!
+
+Unlike the previous ones, this functionality relies on the use of a **suite**, *not a testcase*. The testcases should inherit from `LiveTestCase` but the real juice is in `LiveTestSuite`.
+
+An example testcase for this would look like-
+```py
+from selenium.webdriver import Chrome, ChromeOptions
+from selenium.webdriver.support.ui import WebDriverWait
+
+class TestFoo(flask_unittest.LiveTestCase):
+    driver: Union[Chrome, None] = None
+
+    ### setUpClass and tearDownClass for the entire class
+    # Not quite mandatory, but this is the best place to set up and tear down selenium
+
+    @classmethod
+    def setUpClass(cls):
+        # Initiate the selenium webdriver
+        options = ChromeOptions()
+        options.add_argument('--headless')
+        cls.driver = Chrome(options=options)
+        cls.std_wait = WebDriverWait(cls.driver, 5)
+
+    @classmethod
+    def tearDownClass(cls):
+        # Quit the webdriver
+        cls.driver.quit()
+
+    ### Actual test methods
+
+    def test_foo_with_driver(self):
+        # Use self.driver here
+        # You also have access to self.server_url and self.app
+        pass
+```
+This is pretty straight forward, it's just a regular test case that you would use if you spawned the flask server from the terminal before running tests
+
+Now, you need to use the `LiveTestSuite` to run this. The previous testcases could be run using `unitttest.TestSuite`, or simply `unittest.main` but this *has to be* run using the custom suite
+```py
+# Assign the flask app here
+app = ...
+
+# Add TestFoo to suite
+suite = flask_unittest.LiveTestSuite(app)
+suite.addTest(unittest.makeSuite(TestFoo))
+
+# Run the suite
+runner = unittest.TextTestRunner(verbosity=2)
+runner.run(suite)
+```
+The `LiveTestSuite` requires a built and configured `Flask` app object. It'll spawn this flask app using `app.run` as a daemon thread.
+
+By default, the app runs on port 5000 - if you'd like to change this assign your custom port to `app.config` under the key `PORT`
+
+The server is started when the suite is first run and it runs for the duration of the program
+
+You will have access to the `app` passed to the suite inside `LiveTestCase`, using `self.app`. You will also have access to the url the server is running on inside the testcase, using `self.server_url`
+
+**Full Example**: [`flask_appclient_test.py`](./tests/flask_live_test.py)
+
 # About request context and flask globals
 Both `ClientTestCase` and `AppClientTestCase` allow you to use flask gloabls, such as `request`, `g`, and `session`, directly in your test method (and your `setUp` and `tearDown` methods)
 
@@ -233,11 +294,9 @@ def client(app):
 
 As you can see, this creates the app **and** the test client *per test*. So we'll be using `AppClientTestCase` for this.
 
-Let's make a base class that provides functionality for this - all the other testcases can inherit from it. Defined in [`conftest.py`](./tests/flaskr_test_example/conftest.py)
+Let's make a base class that provides functionality for this - all the other testcases can inherit from it. Defined in [`conftest.py`](./example/tests/conftest.py)
 
 ```py
-from typing import Iterator, Union
-
 import flask_unittest
 from flask import Flask
 from flask.testing import FlaskClient
@@ -247,7 +306,7 @@ class TestBase(flask_unittest.AppClientTestCase):
     # The tests expect to use the session object - so set test_client to use cookies
     test_client_use_cookies = True
 
-    def create_app(self) -> Union[Flask, Iterator[Flask]]:
+    def create_app(self):
         """Create and configure a new app instance for each test."""
         # create a temporary file to isolate the database for each test
         db_fd, db_path = tempfile.mkstemp()
@@ -286,7 +345,7 @@ Now let's look at an actual testcase. We'll be looking at `test_auth.py`, since 
 
 For context, the original file is defined at [`test_auth.py`](https://github.com/pallets/flask/blob/master/examples/tutorial/tests/test_auth.py)
 
-The full emulation of this file is at [`test_auth.py`](./tests/flaskr_test_example/test_auth.py)
+The full emulation of this file is at [`test_auth.py`](./example/tests/test_auth.py)
 
 Ok! Let's look at the emulation of `test_register`.
 
@@ -313,11 +372,11 @@ And here's the `flask-unittest` version!
 from flask import Flask
 from flask.testing import FlaskClient
 
-from tests.flaskr_test_example.conftest import AuthActions, TestBase
+from example.tests.conftest import AuthActions, TestBase
 
 class TestAuth(TestBase):
 
-    def test_register(self, app: Flask, client: FlaskClient):
+    def test_register(self, app, client):
         # test that viewing the page renders without template errors
         self.assertStatus(client.get("/auth/register"), 200)
 
@@ -364,7 +423,7 @@ class TestAuth(TestBase):
     
     ....
 
-    def test_login(self, _, client: FlaskClient):
+    def test_login(self, _, client):
         # test that viewing the page renders without template errors
         self.assertStatus(client.get("/auth/login"), 200)
 
@@ -404,21 +463,20 @@ def test_get_close_db(app):
     assert "closed" in str(e.value)
 ```
 
-The `flask-unittest` version can be seen at [`test_db.py`](./tests/flaskr_test_example/test_db.py)
+The `flask-unittest` version can be seen at [`test_db.py`](./example/tests/test_db.py)
 
 ```py
 import flask_unittest
 from flask import Flask
 from flask.testing import FlaskClient
-from tests.flaskr_test_example.conftest import _create_app
 
 
 class TestDB(flask_unittest.AppTestCase):
 
-    def create_app(self) -> Union[Flask, Iterator[Flask]]:
-        return _create_app()
+    def create_app(self):
+        ....
 
-    def test_get_close_db(self, app: Flask):
+    def test_get_close_db(self, app):
         with app.app_context():
             db = get_db()
             assert db is get_db()
