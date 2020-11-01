@@ -5,7 +5,7 @@ with open('README.md', 'r') as readmefile:
 
 setup(
     name='flask-unittest',
-    version='0.0.1',
+    version='0.1.0',
     url='https://github.com/TotallyNotChase/flask-unittest',
     license='MIT',
     author='TotallyNotChase',
@@ -13,7 +13,7 @@ setup(
     description='Unit test flask applications with unittest!',
     long_description=readme,
     long_description_content_type='text/markdown',
-    packages=find_packages(),
+    packages=['flask_unittest'],
     test_suite="tests.suite",
     platforms='any',
     install_requires=['Flask>=1.1.0'],
