@@ -3,7 +3,9 @@ A simple solution to unittest flask application using `unittest`
 
 Provides functionality for testing using the `Flask` object, the `FlaskClient` object, a combination of the two, or even a live flask server!
 
-This library is intended to provide utilities that help the user follow the [official flask application testing guidelines](https://flask.palletsprojects.com/en/1.1.x/testing/). It is recommended you familiarize yourself with this page.
+This library is intended to provide utilities that help the user follow the [official flask application testing guidelines](https://flask.palletsprojects.com/en/1.1.x/testing/). It is recommended you familiarize yourself with that page.
+
+Unless you're interested in testing a live flask server using a headless browser. In which case, familiarity with you preferred headless browser is enough.
 
 # Features
 * Test flask applications using the `Flask` object returned by `create_app`
@@ -67,6 +69,7 @@ class TestFoo(flast_unittest.ClientTestCase):
         # Use the client here
         pass
 ```
+Remember to assign a correctly configured `Flask` app object to `app`!
 
 Each test method, as well as the `setUp` and `tearDown` methods, should take `client` as a parameter. You can name this parameter whatever you want of course. But the 2nd parameter (including `self` as first) is a `FlaskClient` object.
 
@@ -111,7 +114,7 @@ class TestFoo(flast_unittest.AppTestCase):
         # Use the app here
         pass
 ```
-The `create_app` function should return a `Flask` object representing the webapp to test
+The `create_app` function should return a correctly configured `Flask` object representing the webapp to test
 
 You can also do any set up, extra config for the app (db init etc) here
 
@@ -159,7 +162,7 @@ class TestFoo(flast_unittest.AppClientTestCase):
         # Use the app and client here
         pass
 ```
-The `create_app` function should return a `Flask` object representing the webapp to test
+The `create_app` function should return a correctly configured `Flask` object representing the webapp to test
 
 You can also do any set up, extra config for the app (db init etc) here
 
