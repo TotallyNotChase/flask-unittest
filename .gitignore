@@ -5,3 +5,6 @@
 *env/
 # Ignore flaskr created db directory
 instance/
+# Ignore setuptools output
+build/
+dist/
