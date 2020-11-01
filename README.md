@@ -8,7 +8,7 @@ This library is intended to provide utilities that help the user follow the [off
 Unless you're interested in testing a live flask server using a headless browser. In which case, familiarity with you preferred headless browser is enough.
 
 # Features
-* Test flask applications using the `Flask` object returned by `create_app`
+* Test flask applications using a `Flask` object
   * Access to `app_context`
   * Access to flask globals like `g`, `request`, and `session`
   * Access to `test_client` through the `Flask` object
@@ -42,12 +42,15 @@ Now, before moving on to the examples below - I **highly recommend** checking ou
 
 Alternatively, you can directly dive into the examples at [`tests/`](./tests/) and [`example/tests/`](./example/tests). Though this might be a bit intimidating if you're just starting out at testing flask apps.
 
+**NOTE**: For all the following testcases that using `FlaskClient`, it is recommended to set `.testing` on your `Flask` app to `True` (i.e `app.testing = True`)
+
 # Test using `FlaskClient`
 If you want to use a [`FlaskClient`](https://flask.palletsprojects.com/en/1.1.x/api/#flask.Flask.test_client) object to test - this is the testcase for you!
 
 This testcase creates a `FlaskClient` object for each test method. But the `app` property is kept constant.
 ```py
 import flask_unittest
+import flask.globals
 
 class TestFoo(flast_unittest.ClientTestCase):
     # Assign the `Flask` app object
@@ -61,13 +64,26 @@ class TestFoo(flast_unittest.ClientTestCase):
         # Perform tear down after each test, using client
         pass
 
+    '''
+    Note: the setUp and tearDown method don't need to be explicitly declared
+    if they don't do anything (like in here) - this is just an example
+    Only declare the setUp and tearDown methods with a body, same as regular unittest testcases
+    '''
+
     def test_foo_with_client(self, client):
         # Use the client here
-        pass
+        # Example request to a route returning "hello world" (on a hypothetical app)
+        rv = client.get('/hello')
+        self.assertInResponse(rv, 'hello world!')
 
     def test_bar_with_client(self, client):
         # Use the client here
-        pass
+        # Example login request (on a hypothetical app)
+        rv = client.post('/login', {'username': 'pinkerton', 'password': 'secret_key'})
+        # Make sure rv is a redirect request to index page
+        self.assertLocationHeader('http://localhost/')
+        # Make sure session is set
+        self.assertIn('user_id', flask.globals.session)
 ```
 Remember to assign a correctly configured `Flask` app object to `app`!
 
@@ -79,7 +95,7 @@ What does this mean? Well, when it's time to run `test_foo_with_client`, a `Flas
 
 This essentially means that you can use `setUp` to login to your web app - which stores the `session` that is shared in the actual test and in the `tearDown`.
 
-**NOTE**: If you want to enable the use of cookies so the `client` can store `session` and/or other cookies. You need to put `test_client_use_cookies = True` in your testcase body.
+**NOTE**: If you want to **disable** the use of cookies on `client`, you need to put `test_client_use_cookies = False` in your testcase body.
 
 You can also pass in extra kwargs to the `test_client()` call by setting `test_client_kwargs` in your testcase body.
 
@@ -91,6 +107,7 @@ If you want to use a [`Flask`](https://flask.palletsprojects.com/en/1.1.x/api/#f
 This testcase creates a `Flask` object for each test method, using the `create_app` method implemented by the user
 ```py
 import flask_unittest
+from flaskr.db import get_db
 
 class TestFoo(flast_unittest.AppTestCase):
 
@@ -106,13 +123,30 @@ class TestFoo(flast_unittest.AppTestCase):
         # Perform tear down after each test, using app
         pass
 
+    '''
+    Note: the setUp and tearDown method don't need to be explicitly declared
+    if they don't do anything (like in here) - this is just an example
+    Only declare the setUp and tearDown methods with a body, same as regular unittest testcases
+    '''
+
     def test_foo_with_app(self, app):
         # Use the app here
-        pass
+        # Example of using test_request_context (on a hypothetical app)
+        with app.test_request_context('/1/update'):
+            self.assertEqual(request.endpoint, 'blog.update')
 
     def test_bar_with_app(self, app):
         # Use the app here
-        pass
+        # Example of using client from app (on a hypothetical app)
+        with app.test_client() as client:
+            rv = client.get('/hello')
+            self.assertInResponse(rv, 'hello world!')
+
+    def test_baz_with_app(self, app):
+        # Use the app here
+        # Example of using app_context (on a hypothetical app)
+        with app.app_context():
+            get_db().execute("INSERT INTO user (username, password) VALUES ('test', 'testpass');")
 ```
 The `create_app` function should return a correctly configured `Flask` object representing the webapp to test
 
@@ -139,6 +173,7 @@ If you want to use both [`Flask`](https://flask.palletsprojects.com/en/1.1.x/api
 This testcase creates a `Flask`, using the `create_app` method implemented by the user, *and* a `FlaskClient` object from said `Flask` object, for each test method
 ```py
 import flask_unittest
+from flaskr import get_db
 
 class TestFoo(flast_unittest.AppClientTestCase):
 
@@ -154,13 +189,31 @@ class TestFoo(flast_unittest.AppClientTestCase):
         # Perform tear down after each test, using app and client
         pass
 
+    '''
+    Note: the setUp and tearDown method don't need to be explicitly declared
+    if they don't do anything (like in here) - this is just an example
+    Only declare the setUp and tearDown methods with a body, same as regular unittest testcases
+    '''
+
     def test_foo_with_both(self, app, client):
         # Use the app and client here
-        pass
+        # Example of registering a user and checking if the entry exists in db (on a hypothetical app)
+        response = client.post('/auth/register', data={'username': 'a', 'password': 'a'})
+        self.assertLocationHeader(response, 'http://localhost/auth/login')
+
+        # test that the user was inserted into the database
+        with app.app_context():
+            self.assertIsNotNone(get_db().execute("select * from user where username = 'a'").fetchone())
 
     def test_bar_with_both(self, app, client):
         # Use the app and client here
-        pass
+        # Example of creating a post and checking if the entry exists in db (on a hypothetical app)
+        client.post('/create', data={'title': 'created', 'body': ''})
+
+        with app.app_context():
+            db = get_db()
+            count = db.execute('SELECT COUNT(id) FROM post').fetchone()[0]
+            self.assertEqual(count, 2)
 ```
 The `create_app` function should return a correctly configured `Flask` object representing the webapp to test
 
@@ -188,11 +241,15 @@ Unlike the previous ones, this functionality relies on the use of a **suite**, *
 
 An example testcase for this would look like-
 ```py
+import flask_unittest
 from selenium.webdriver import Chrome, ChromeOptions
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class TestFoo(flask_unittest.LiveTestCase):
     driver: Union[Chrome, None] = None
+    std_wait: Union[WebDriverWait, None] = None
 
     ### setUpClass and tearDownClass for the entire class
     # Not quite mandatory, but this is the best place to set up and tear down selenium
@@ -215,7 +272,10 @@ class TestFoo(flask_unittest.LiveTestCase):
     def test_foo_with_driver(self):
         # Use self.driver here
         # You also have access to self.server_url and self.app
-        pass
+        # Example of using selenium to go to index page and try to find some elements (on a hypothetical app)
+        self.driver.get(self.server_url)
+        self.std_wait.until(EC.presence_of_element_located((By.LINK_TEXT, 'Register')))
+        self.std_wait.until(EC.presence_of_element_located((By.LINK_TEXT, 'Log In')))
 ```
 This is pretty straight forward, it's just a regular test case that you would use if you spawned the flask server from the terminal before running tests
 
@@ -240,7 +300,7 @@ The server is started when the suite is first run and it runs for the duration o
 
 You will have access to the `app` passed to the suite inside `LiveTestCase`, using `self.app`. You will also have access to the url the server is running on inside the testcase, using `self.server_url`
 
-**Full Example**: [`flask_appclient_test.py`](./tests/flask_live_test.py)
+**Full Example**: [`flask_live_test.py`](./tests/flask_live_test.py)
 
 # About request context and flask globals
 Both `ClientTestCase` and `AppClientTestCase` allow you to use flask gloabls, such as `request`, `g`, and `session`, directly in your test method (and your `setUp` and `tearDown` methods)
@@ -306,8 +366,6 @@ from flask.testing import FlaskClient
 
 
 class TestBase(flask_unittest.AppClientTestCase):
-    # The tests expect to use the session object - so set test_client to use cookies
-    test_client_use_cookies = True
 
     def create_app(self):
         """Create and configure a new app instance for each test."""
