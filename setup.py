@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 with open('README.md', 'r') as readmefile:
     readme = readmefile.read()
@@ -10,11 +10,11 @@ setup(
     license='MIT',
     author='TotallyNotChase',
     author_email='totallynotchase42@gmail.com',
-    description='Unit test flask applications with unittest!',
+    description='Unit testing flask applications made easy!',
     long_description=readme,
     long_description_content_type='text/markdown',
     packages=['flask_unittest'],
-    test_suite="tests.suite",
+    test_suite="tests.normalsuite",
     platforms='any',
     install_requires=['Flask>=1.1.0'],
     tests_require=['selenium', 'beautifulsoup4'],
