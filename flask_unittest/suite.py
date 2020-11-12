@@ -25,6 +25,7 @@ class LiveTestSuite(unittest.TestSuite):
     ):
         self._app = flask_app
         self._timeout = timeout if timeout is not _GLOBAL_DEFAULT_TIMEOUT else None
+        self._host: str = flask_app.config.get('HOST', '127.0.0.1')
         self._port: int = flask_app.config.get('PORT', 5000)
         super().__init__(tests)
 
@@ -52,7 +53,7 @@ class LiveTestSuite(unittest.TestSuite):
 
     def _setup_server(self):
         # Spawn the flask server as a separate process
-        self._thread = threading.Thread(target=self._app.run, kwargs={'port': self._port, 'use_reloader': False})
+        self._thread = threading.Thread(target=self._app.run, kwargs={'host': self._host, 'port': self._port, 'use_reloader': False})
         self._thread.setDaemon(True)
         self._thread.start()
         # Wait for the server to start responding, until a specific timeout
