@@ -294,7 +294,7 @@ runner.run(suite)
 ```
 The `LiveTestSuite` requires a built and configured `Flask` app object. It'll spawn this flask app using `app.run` as a daemon thread.
 
-By default, the app runs on port 5000 - if you'd like to change this assign your custom port to `app.config` under the key `PORT`
+By default, the app runs on host 127.0.0.1 and port 5000. If you'd like to change this assign your custom host (as a `str`) and a port (as an `int`) to `app.config` under the key `HOST` and `PORT` respectively. (`app.config['HOST'] = '0.0.0.0'; app.config['PORT'] = 7000`)
 
 The server is started when the suite is first run and it runs for the duration of the program
 
