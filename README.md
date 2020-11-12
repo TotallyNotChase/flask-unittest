@@ -5,11 +5,11 @@ Provides functionality for testing using the `Flask` object, the `FlaskClient` o
 
 This library is intended to provide utilities that help the user follow the [official flask application testing guidelines](https://flask.palletsprojects.com/en/1.1.x/testing/). It is recommended you familiarize yourself with that page.
 
-Unless you're interested in testing a live flask server using a headless browser. In which case, familiarity with you preferred headless browser is enough.
+Unless you're interested in testing a live flask server using a headless browser. In which case, familiarity with your preferred headless browser is enough.
 
 # Features
 * Test flask applications using a `Flask` object
-  * Access to `app_context`
+  * Access to `app_context`, `test_request_context` etc
   * Access to flask globals like `g`, `request`, and `session`
   * Access to `test_client` through the `Flask` object
   * Same `Flask` object will be usable in the test method and its corresponding `setUp` and `tearDown` methods
@@ -19,7 +19,7 @@ Unless you're interested in testing a live flask server using a headless browser
   * Test your flask app in an **API centric way** using the functionality provided by `FlaskClient`
   * Same `FlaskClient` object will be usable in the test method and its corresponding `setUp` and `tearDown` methods
   * The `FlaskClient` is created per test method of the testcase by using the given `Flask` object (App)
-  * App can either be constant throughout the testcase, or be created per test method
+  * App can either be a constant class property throughout the testcase, or be created per test method
 * Test flask applications running *live* on localhost - using your preferred **headless browser** (e.g `selenium`, `pyppeteer` etc)
   * Contrary to the previous ones, this functionality is handled by a test suite, rather than a test case
   * The flask server is started in a daemon thread when the `LiveTestSuite` runs - it runs for the duration of the program
@@ -42,7 +42,7 @@ Now, before moving on to the examples below - I **highly recommend** checking ou
 
 Alternatively, you can directly dive into the examples at [`tests/`](./tests/) and [`example/tests/`](./example/tests). Though this might be a bit intimidating if you're just starting out at testing flask apps.
 
-**NOTE**: For all the following testcases that using `FlaskClient`, it is recommended to set `.testing` on your `Flask` app to `True` (i.e `app.testing = True`)
+**NOTE**: For all the following testcases using `FlaskClient`, it is recommended to set `.testing` on your `Flask` app to `True` (i.e `app.testing = True`)
 
 # Test using `FlaskClient`
 If you want to use a [`FlaskClient`](https://flask.palletsprojects.com/en/1.1.x/api/#flask.Flask.test_client) object to test - this is the testcase for you!
@@ -87,13 +87,15 @@ class TestFoo(flast_unittest.ClientTestCase):
 ```
 Remember to assign a correctly configured `Flask` app object to `app`!
 
-Each test method, as well as the `setUp` and `tearDown` methods, should take `client` as a parameter. You can name this parameter whatever you want of course. But the 2nd parameter (including `self` as first) is a `FlaskClient` object.
+Each test method, as well as the `setUp` and `tearDown` methods, should take `client` as a parameter. You can name this parameter whatever you want of course but the 2nd parameter (including `self` as first) is a `FlaskClient` object.
 
 Note that the `client` is different for *each test method*. But it's the same for a singular test method and its corresponding `setUp` and `tearDown` methods.
 
 What does this mean? Well, when it's time to run `test_foo_with_client`, a `FlaskClient` object is created using `app.test_client()`. Then this is passed to `setUp`, which does its job of setup. After that, the same `client` is passed to `test_foo_with_client`, which does the testing. Finally, the same `client` again, is passed to `tearDown` - which cleans the stuff up.
 
-This essentially means that you can use `setUp` to login to your web app - which stores the `session` that is shared in the actual test and in the `tearDown`.
+Now when it's time to run `test_bar_with_client`, a new `FlaskClient` object is created and so on.
+
+This essentially means that any global changes (such as `session` and cookies) you perform in `setUp` using `client`, will be persistent in the actual test method. And the changes in the test method will be persistent in the `tearDown`. These changes get destroyed in the next test method, where a new `FlaskClient` object is created.
 
 **NOTE**: If you want to **disable** the use of cookies on `client`, you need to put `test_client_use_cookies = False` in your testcase body.
 
@@ -157,20 +159,22 @@ This way, you can put cleanup right here after the `yield` and they will be exec
 
 See [Emulating official flask testing example using `flask-unittest`](#emulating-official-flask-testing-example-using-flask-unittest)
 
-Each test method, as well as the `setUp` and `tearDown` methods, should take `app` as a parameter. You can name this parameter whatever you want of course. But the 2nd parameter (including `self` as first) is a `Flask` object returned/yielded from the user provided `create_app`.
+Each test method, as well as the `setUp` and `tearDown` methods, should take `app` as a parameter. You can name this parameter whatever you want of course but the 2nd parameter (including `self` as first) is a `Flask` object returned/yielded from the user provided `create_app`.
 
 Note that the `app` is different for *each test method*. But it's the same for a singular test method and its corresponding `setUp` and `tearDown` methods.
 
-What does this mean? Well, when it's time to run `test_foo_with_app`, a `Flask` object is created using `create_app()`. Then this is passed to `setUp`, which does its job of setup. After that, the same `app` is passed to `test_foo_with_app`, which does the testing. Finally, the same `app` again, is passed to `tearDown` - which cleans the stuff up.
+What does this mean? Well, when it's time to run `test_foo_with_app`, a `Flask` object is created using `create_app`. Then this is passed to `setUp`, which does its job of setup. After that, the same `app` is passed to `test_foo_with_app`, which does the testing. Finally, the same `app` again, is passed to `tearDown` - which cleans the stuff up.
 
-If `create_app` is a generator function. All the stuff after `yield app` will be executed after the test method (and its `tearDown` if any) has run
+Now when it's time to run `test_bar_with_app` - `create_app` is called again and a new `Flask` object is created and so on.
+
+If `create_app` is a generator function. All the stuff after `yield app` will be executed after the test method (and its `tearDown`, if any) has run
 
 **Full Example**: [`flask_app_test.py`](./tests/flask_app_test.py)
 
 # Test using both `Flask` and `FlaskClient`
 If you want to use both [`Flask`](https://flask.palletsprojects.com/en/1.1.x/api/#flask.Flask) *and* [`FlaskClient`](https://flask.palletsprojects.com/en/1.1.x/api/#flask.Flask.test_client) to test - this is the testcase for you!
 
-This testcase creates a `Flask`, using the `create_app` method implemented by the user, *and* a `FlaskClient` object from said `Flask` object, for each test method
+This testcase creates a `Flask` object, using the `create_app` method implemented by the user, *and* a `FlaskClient` object from said `Flask` object, for each test method
 ```py
 import flask_unittest
 from flaskr import get_db
@@ -224,11 +228,13 @@ This way, you can put cleanup right here after the `yield` and they will be exec
 
 See [Emulating official flask testing example using `flask-unittest`](#emulating-official-flask-testing-example-using-flask-unittest)
 
-Each test method, as well as the `setUp` and `tearDown` methods, should take `app` and `client` as a parameter. You can name these parameters whatever you want of course. But the 2nd parameter (including `self` as first) is a `Flask` object returned/yielded from the user provided `create_app`, and the third parameter is a `FlaskClient` object returned from calling `.test_client` on said `Flask` object.
+Each test method, as well as the `setUp` and `tearDown` methods, should take `app` and `client` as a parameter. You can name these parameters whatever you want of course but the 2nd parameter (including `self` as first) is a `Flask` object returned/yielded from the user provided `create_app`, and the third parameter is a `FlaskClient` object returned from calling `.test_client` on said `Flask` object.
 
 Note that the `app` and `client` are different for *each test method*. But they are the same for a singular test method and its corresponding `setUp` and `tearDown` methods.
 
 What does this mean? Well, when it's time to run `test_foo_with_both`, a `Flask` object is created using `create_app()`, and a `FlaskClient` object is created from it. Then they are passed to `setUp`, which does its job of setup. After that, the same `app` and `client` are passed to `test_foo_with_both`, which does the testing. Finally, the same `app` and `client` again, are passed to `tearDown` - which cleans the stuff up.
+
+Now when it's time to run `test_bar_with_app` - `create_app` is called again to create a new `Flask` object, and also `.test_client` to create a new `FlaskClient` object and so on.
 
 If `create_app` is a generator function. All the stuff after `yield app` will be executed after the test method (and its `tearDown` if any) has run
 
@@ -300,7 +306,8 @@ The server is started when the suite is first run and it runs for the duration o
 
 You will have access to the `app` passed to the suite inside `LiveTestCase`, using `self.app`. You will also have access to the url the server is running on inside the testcase, using `self.server_url`
 
-**Full Example**: [`flask_live_test.py`](./tests/flask_live_test.py)
+**Full Example** (of `LiveTestCase`): [`flask_live_test.py`](./tests/flask_live_test.py)
+**Full Example** (of `LiveTestSuite`): [`__init__.py`](./tests/__init__.py)
 
 # About request context and flask globals
 Both `ClientTestCase` and `AppClientTestCase` allow you to use flask gloabls, such as `request`, `g`, and `session`, directly in your test method (and your `setUp` and `tearDown` methods)
@@ -323,7 +330,7 @@ Additional info in the [official docs](https://flask.palletsprojects.com/en/1.1.
 # Emulating official flask testing example using `flask-unittest`
 The official flask testing example can be found [in the flask repo](https://github.com/pallets/flask/tree/master/examples/tutorial/tests)
 
-The original tests are written using `pytest`. This example demonstrates how `flask-unittest` can provide the same functionality for you, with even finer control!
+The original tests are written using `pytest`. This example demonstrates how `flask-unittest` can provide the same functionality for you, with the same degree of control!
 
 Note that this demonstration does not implement the `test_cli_runner` - since that is not directly supported by `flask-unittest` (yet). However, it's completely possible to simply use `.test_cli_runner()` on the `app` object in the testcases provided by `flask-unittest` to emulate this.
 
@@ -361,8 +368,6 @@ Let's make a base class that provides functionality for this - all the other tes
 
 ```py
 import flask_unittest
-from flask import Flask
-from flask.testing import FlaskClient
 
 
 class TestBase(flask_unittest.AppClientTestCase):
@@ -430,10 +435,8 @@ def test_register(client, app):
 
 And here's the `flask-unittest` version!
 ```py
-from flask import Flask
-from flask.testing import FlaskClient
-
 from example.tests.conftest import AuthActions, TestBase
+
 
 class TestAuth(TestBase):
 
@@ -457,7 +460,7 @@ As mentioned previously, each test method of an `AppClientTestCase` should have 
 
 Also, this is using `self.assert...` functions as per `unittest` convention. However, regular `assert`s should work just fine.
 
-Nice! Let's look at a function uses flask globals - `test_login`
+Nice! Let's look at a function that uses flask globals - `test_login`
 
 Here's the original snippet-
 ```py
@@ -482,8 +485,6 @@ And here's the `flask-unittest` version-
 ```py
 class TestAuth(TestBase):
     
-    ....
-
     def test_login(self, _, client):
         # test that viewing the page renders without template errors
         self.assertStatus(client.get("/auth/login"), 200)
@@ -528,15 +529,11 @@ The `flask-unittest` version can be seen at [`test_db.py`](./example/tests/test_
 
 ```py
 import flask_unittest
-from flask import Flask
-from flask.testing import FlaskClient
-
 
 class TestDB(flask_unittest.AppTestCase):
 
-    def create_app(self):
-        ....
-
+   # create_app omitted for brevity - remember to include it!
+   
     def test_get_close_db(self, app):
         with app.app_context():
             db = get_db()
