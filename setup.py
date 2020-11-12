@@ -5,7 +5,7 @@ with open('README.md', 'r') as readmefile:
 
 setup(
     name='flask-unittest',
-    version='0.1.0',
+    version='0.1.1',
     url='https://github.com/TotallyNotChase/flask-unittest',
     license='MIT',
     author='TotallyNotChase',
