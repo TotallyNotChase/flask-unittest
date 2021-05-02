@@ -52,7 +52,7 @@ This testcase creates a `FlaskClient` object for each test method. But the `app`
 import flask_unittest
 import flask.globals
 
-class TestFoo(flast_unittest.ClientTestCase):
+class TestFoo(flask_unittest.ClientTestCase):
     # Assign the `Flask` app object
     app = ...
 
