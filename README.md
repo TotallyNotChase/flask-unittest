@@ -111,7 +111,7 @@ This testcase creates a `Flask` object for each test method, using the `create_a
 import flask_unittest
 from flaskr.db import get_db
 
-class TestFoo(flast_unittest.AppTestCase):
+class TestFoo(flask_unittest.AppTestCase):
 
     def create_app(self):
         # Return/Yield a `Flask` object here
@@ -179,7 +179,7 @@ This testcase creates a `Flask` object, using the `create_app` method implemente
 import flask_unittest
 from flaskr import get_db
 
-class TestFoo(flast_unittest.AppClientTestCase):
+class TestFoo(flask_unittest.AppClientTestCase):
 
     def create_app(self):
         # Return/Yield a `Flask` object here
