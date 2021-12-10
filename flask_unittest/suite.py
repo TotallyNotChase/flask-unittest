@@ -1,6 +1,7 @@
 import unittest
 import threading
 import socket
+import time
 from typing import Union, Iterator, Iterable
 
 from flask import Flask
@@ -57,8 +58,13 @@ class LiveTestSuite(unittest.TestSuite):
         self._thread.setDaemon(True)
         self._thread.start()
         # Wait for the server to start responding, until a specific timeout
-        sckt = socket.create_connection((_LOCALHOST, self._port), timeout=self._timeout or None)
-        sckt.close()
+        while True:
+            try:
+                sckt = socket.create_connection((_LOCALHOST, self._port), timeout=self._timeout or None)
+                sckt.close()
+                break
+            except ConnectionRefusedError:
+                time.sleep(.1)
 
     def _isnotsuite(self, test):
         '''
